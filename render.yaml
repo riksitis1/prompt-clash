@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: concept-battle-game
+    runtime: node
+    repo: https://github.com/riksitis1/concept-battle-game
+    plan: free
+    region: oregon
+    buildCommand: npm install
+    startCommand: node server.js
+    healthCheckPath: /api/health
+    envVars:
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: FIREBASE_PROJECT_ID
+        sync: false
+      - key: FIREBASE_PRIVATE_KEY
+        sync: false
+      - key: FIREBASE_CLIENT_EMAIL
+        sync: false
+      - key: PORT
+        value: "3000"
