@@ -2,24 +2,41 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Prompt Clash</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: rgba(15, 15, 35, 0.5); }
+    ::-webkit-scrollbar-thumb { background: rgba(99, 102, 241, 0.3); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(99, 102, 241, 0.5); }
+
     body {
       font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
-      background: linear-gradient(135deg, #0b0b1a 0%, #14142e 50%, #0f0f23 100%);
+      background: #07070f;
       color: #e2e2e2;
       overflow-x: hidden;
     }
-    /* Subtle animated background */
     body::before {
       content: '';
       position: fixed;
       inset: 0;
-      background: radial-gradient(ellipse at 20% 50%, rgba(99,102,241,0.06) 0%, transparent 50%),
-                  radial-gradient(ellipse at 80% 50%, rgba(167,139,250,0.04) 0%, transparent 50%);
+      background:
+        radial-gradient(ellipse at 15% 30%, rgba(99,102,241,0.08) 0%, transparent 55%),
+        radial-gradient(ellipse at 85% 70%, rgba(167,139,250,0.06) 0%, transparent 55%),
+        radial-gradient(ellipse at 50% 50%, rgba(15,15,35,1) 0%, transparent 100%);
+      pointer-events: none;
+      z-index: 0;
+    }
+    body::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%236366f1' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
       pointer-events: none;
       z-index: 0;
     }
@@ -28,117 +45,157 @@
     .screen {
       display: none;
       opacity: 0;
-      transition: opacity 0.35s ease-in-out;
+      transition: opacity 0.4s ease, transform 0.4s ease;
+      transform: translateY(8px);
     }
     .screen.active {
       opacity: 1;
+      transform: translateY(0);
     }
 
-    /* Card glass effect */
     .glass-card {
-      background: rgba(26, 26, 62, 0.7);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      border: 1px solid rgba(99, 102, 241, 0.15);
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+      background: rgba(20, 20, 50, 0.75);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(99, 102, 241, 0.12);
+      box-shadow: 0 8px 40px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(99, 102, 241, 0.05) inset;
     }
     .glass-panel {
-      background: rgba(26, 26, 62, 0.5);
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
-      border: 1px solid rgba(99, 102, 241, 0.1);
+      background: rgba(20, 20, 50, 0.55);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid rgba(99, 102, 241, 0.08);
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.25);
     }
 
-    /* Buttons */
     .btn-primary {
-      background: linear-gradient(135deg, #6366f1, #4f46e5);
+      background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
       border: none;
       font-weight: 700;
       transition: all 0.25s ease;
-      box-shadow: 0 4px 16px rgba(99, 102, 241, 0.25);
+      box-shadow: 0 4px 20px rgba(99, 102, 241, 0.3);
+      position: relative;
+      overflow: hidden;
+    }
+    .btn-primary::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(255,255,255,0.08) 0%, transparent 60%);
+      pointer-events: none;
     }
     .btn-primary:hover {
       transform: translateY(-2px);
-      box-shadow: 0 8px 24px rgba(99, 102, 241, 0.4);
-      background: linear-gradient(135deg, #818cf8, #6366f1);
+      box-shadow: 0 8px 32px rgba(99, 102, 241, 0.45);
+      background: linear-gradient(135deg, #818cf8 0%, #6366f1 100%);
     }
-    .btn-primary:active {
-      transform: translateY(0);
-    }
+    .btn-primary:active { transform: translateY(0); }
     .btn-primary:disabled {
-      opacity: 0.5;
+      opacity: 0.4;
       cursor: not-allowed;
       transform: none;
+      box-shadow: none;
     }
+
     .btn-secondary {
-      background: linear-gradient(135deg, #10b981, #059669);
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
       border: none;
       font-weight: 700;
       transition: all 0.25s ease;
-      box-shadow: 0 4px 16px rgba(16, 185, 129, 0.25);
+      box-shadow: 0 4px 20px rgba(16, 185, 129, 0.25);
     }
     .btn-secondary:hover {
       transform: translateY(-2px);
-      box-shadow: 0 8px 24px rgba(16, 185, 129, 0.4);
+      box-shadow: 0 8px 32px rgba(16, 185, 129, 0.4);
     }
+
     .btn-danger {
-      background: linear-gradient(135deg, #ef4444, #dc2626);
+      background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
       border: none;
       font-weight: 600;
       transition: all 0.25s ease;
+      box-shadow: 0 4px 16px rgba(239, 68, 68, 0.2);
     }
     .btn-danger:hover {
       transform: translateY(-1px);
-      box-shadow: 0 4px 16px rgba(239, 68, 68, 0.3);
+      box-shadow: 0 6px 20px rgba(239, 68, 68, 0.35);
     }
+
     .btn-ghost {
-      background: rgba(99, 102, 241, 0.1);
-      border: 1px solid rgba(99, 102, 241, 0.2);
+      background: rgba(99, 102, 241, 0.08);
+      border: 1px solid rgba(99, 102, 241, 0.15);
       font-weight: 600;
       transition: all 0.25s ease;
+      color: #a5b4fc;
     }
     .btn-ghost:hover {
-      background: rgba(99, 102, 241, 0.2);
+      background: rgba(99, 102, 241, 0.18);
       border-color: rgba(99, 102, 241, 0.3);
+      color: #c7d2fe;
     }
 
     .hp-bar {
-      transition: width 0.6s ease-out;
+      transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
     }
     @keyframes shake {
       0%, 100% { transform: translateX(0); }
-      10%, 30%, 50%, 70%, 90% { transform: translateX(-6px); }
-      20%, 40%, 60%, 80% { transform: translateX(6px); }
+      10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+      20%, 40%, 60%, 80% { transform: translateX(5px); }
     }
     @keyframes cloudPulse {
-      0% { transform: scale(0.2); opacity: 0; border-radius: 50%; }
-      40% { transform: scale(1.3); opacity: 0.95; border-radius: 20%; }
+      0% { transform: scale(0.15); opacity: 0; border-radius: 50%; }
+      45% { transform: scale(1.4); opacity: 0.95; border-radius: 20%; }
       100% { transform: scale(0); opacity: 0; border-radius: 50%; }
     }
     @keyframes dashAttack {
       0% { transform: translateX(0) scale(1); }
-      30% { transform: translateX(var(--dash-target)) scale(2); }
-      60% { transform: translateX(var(--dash-target)) scale(2.4); }
+      25% { transform: translateX(var(--dash-target)) scale(1.8); }
+      60% { transform: translateX(var(--dash-target)) scale(2.2); }
       100% { transform: translateX(0) scale(1); }
     }
     @keyframes flashRed {
       0% { background-color: transparent; }
-      25% { background-color: rgba(255, 0, 0, 0.7); }
+      20% { background-color: rgba(255, 30, 30, 0.8); }
       100% { background-color: transparent; }
     }
     @keyframes fadeInUp {
-      from { opacity: 0; transform: translateY(12px); }
+      from { opacity: 0; transform: translateY(16px); }
       to { opacity: 1; transform: translateY(0); }
     }
+    @keyframes slideDown {
+      from { opacity: 0; transform: translateY(-12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes pulseGlow {
+      0%, 100% { box-shadow: 0 0 20px rgba(99,102,241,0.3); }
+      50% { box-shadow: 0 0 40px rgba(99,102,241,0.6); }
+    }
+    @keyframes spinner {
+      to { transform: rotate(360deg); }
+    }
     .shake { animation: shake 0.5s ease-in-out; }
-    .animate-fade-in-up { animation: fadeInUp 0.4s ease-out forwards; }
+    .animate-fade-in-up { animation: fadeInUp 0.45s ease-out forwards; }
+    .animate-slide-down { animation: slideDown 0.35s ease-out forwards; }
+    .pulse-glow { animation: pulseGlow 2s ease-in-out infinite; }
+    .spinner::after {
+      content: '';
+      width: 18px;
+      height: 18px;
+      border: 2px solid rgba(255,255,255,0.2);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spinner 0.6s linear infinite;
+      display: inline-block;
+      vertical-align: middle;
+      margin-left: 6px;
+    }
 
     .arena-emoji {
       font-size: 5rem;
       position: absolute;
-      transition: all 0.5s ease-in-out;
+      transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
       z-index: 5;
-      filter: drop-shadow(0 0 8px rgba(99, 102, 241, 0.3));
+      filter: drop-shadow(0 0 12px rgba(99, 102, 241, 0.35));
     }
     .arena-entity-label {
       position: absolute;
@@ -153,19 +210,20 @@
       z-index: 6;
       pointer-events: none;
       font-weight: 500;
-      letter-spacing: 0.02em;
+      letter-spacing: 0.03em;
     }
     .damage-popup {
       position: absolute;
-      font-size: 2rem;
+      font-size: 2.2rem;
       font-weight: 900;
       pointer-events: none;
       z-index: 20;
-      animation: floatUp 1.2s ease-out forwards;
+      animation: floatUp 1.3s ease-out forwards;
+      text-shadow: 0 2px 12px rgba(0,0,0,0.6);
     }
     @keyframes floatUp {
       0% { opacity: 1; transform: translateY(0) scale(1); }
-      100% { opacity: 0; transform: translateY(-80px) scale(1.4); }
+      100% { opacity: 0; transform: translateY(-90px) scale(1.5); }
     }
     .damage-text {
       position: absolute;
@@ -176,8 +234,8 @@
       width: 100%;
       z-index: 7;
       pointer-events: none;
-      padding: 0 4px;
-      line-height: 1.2;
+      padding: 0 8px;
+      line-height: 1.3;
     }
     .fight-cloud-inner {
       animation: cloudPulse 0.9s ease-out forwards;
@@ -187,9 +245,9 @@
       align-items: center;
       justify-content: center;
       font-size: 3.5rem;
-      box-shadow: 0 0 60px rgba(251, 191, 36, 0.3);
+      box-shadow: 0 0 80px rgba(251, 191, 36, 0.35);
     }
-    .dash-attack { animation: dashAttack 0.9s ease-in-out forwards; }
+    .dash-attack { animation: dashAttack 0.9s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
     .flash-overlay { animation: flashRed 0.5s ease-out; }
 
     .letter-avatar {
@@ -204,20 +262,26 @@
       color: white;
       flex-shrink: 0;
       user-select: none;
-      box-shadow: 0 0 20px rgba(99, 102, 241, 0.15);
+      box-shadow: 0 0 24px rgba(99, 102, 241, 0.15);
+      transition: box-shadow 0.3s ease;
     }
+
     .log-container {
-      max-height: 120px;
+      max-height: 110px;
       overflow-y: auto;
       scroll-behavior: smooth;
     }
-    .log-container::-webkit-scrollbar { width: 5px; }
-    .log-container::-webkit-scrollbar-track { background: rgba(26, 26, 62, 0.5); border-radius: 3px; }
-    .log-container::-webkit-scrollbar-thumb { background: rgba(74, 74, 138, 0.6); border-radius: 3px; }
+    .log-container::-webkit-scrollbar { width: 4px; }
+    .log-container::-webkit-scrollbar-track { background: rgba(26, 26, 62, 0.3); border-radius: 2px; }
+    .log-container::-webkit-scrollbar-thumb { background: rgba(99, 102, 241, 0.25); border-radius: 2px; }
 
-    .countdown { font-variant-numeric: tabular-nums; }
-    .glow-border:focus { box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.5); outline: none; }
+    .countdown { font-variant-numeric: tabular-nums; letter-spacing: -0.02em; }
     .glow-border { transition: box-shadow 0.2s ease; }
+    .glow-border:focus {
+      box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.5), 0 0 20px rgba(99, 102, 241, 0.1);
+      outline: none;
+      border-color: rgba(99, 102, 241, 0.4);
+    }
     .entity-hidden { filter: blur(6px); user-select: none; }
     .entity-revealed { filter: blur(0); }
 
@@ -225,13 +289,76 @@
     .hp-warning { background: linear-gradient(to right, #f59e0b, #d97706) !important; }
     .hp-safe { background: linear-gradient(to right, #22c55e, #10b981) !important; }
     .hp-bar-track {
-      background: rgba(55, 55, 95, 0.6);
+      background: rgba(45, 45, 80, 0.6);
       border-radius: 999px;
       overflow: hidden;
       height: 8px;
     }
 
-    /* Mobile: vertical battle layout (P1 top, arena middle, P2 bottom) */
+    .auth-input-icon {
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: rgba(99, 102, 241, 0.4);
+      font-size: 1.1rem;
+      pointer-events: none;
+    }
+    .auth-input-wrapper {
+      position: relative;
+    }
+    .auth-input-wrapper input {
+      padding-left: 40px !important;
+    }
+
+    .stat-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 10px;
+      border-radius: 999px;
+      background: rgba(99, 102, 241, 0.08);
+      border: 1px solid rgba(99, 102, 241, 0.08);
+    }
+    .stat-badge-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+
+    .btn-loading {
+      pointer-events: none;
+      opacity: 0.7;
+    }
+
+    /* Genre card grid style */
+    .genre-card {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 16px;
+      border-radius: 12px;
+      background: rgba(20, 20, 50, 0.5);
+      border: 1px solid rgba(99, 102, 241, 0.08);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      color: #c7d2fe;
+      font-weight: 500;
+      font-size: 0.9rem;
+    }
+    .genre-card:hover {
+      background: rgba(99, 102, 241, 0.12);
+      border-color: rgba(99, 102, 241, 0.25);
+      transform: translateY(-1px);
+    }
+    .genre-card.selected {
+      background: rgba(99, 102, 241, 0.18);
+      border-color: rgba(99, 102, 241, 0.4);
+      box-shadow: 0 0 20px rgba(99, 102, 241, 0.1);
+    }
+
+    /* Mobile responsive */
     @media (max-width: 768px) {
       .battle-main { flex-direction: column !important; }
       .battle-main > .player-side { flex: none !important; flex-direction: row !important; align-items: center !important; padding: 8px 12px !important; gap: 8px !important; justify-content: flex-start !important; }
@@ -241,227 +368,280 @@
       .battle-main > .player-side .player-input-section input { font-size: 0.8rem !important; padding: 6px 10px !important; }
       .battle-main > .player-side .player-input-section button { padding: 6px 10px !important; font-size: 0.75rem !important; }
       .battle-main > .player-side .player-hp-section { width: 100px !important; }
-      #arena-center { flex: 1 !important; min-height: 160px !important; min-width: auto !important; }
-      .arena-emoji { font-size: 3.5rem !important; }
+      #arena-center { flex: 1 !important; min-height: 140px !important; min-width: auto !important; }
+      .arena-emoji { font-size: 3rem !important; }
       #screen-battle { padding: 6px !important; gap: 4px !important; }
-      .fight-cloud-inner { width: 120px !important; height: 120px !important; font-size: 2.5rem !important; }
+      .fight-cloud-inner { width: 100px !important; height: 100px !important; font-size: 2rem !important; }
       #battle-log { display: none !important; }
-      .battle-main > .player-side .player-name-elo { font-size: 0.75rem !important; }
+      .battle-main > .player-side .player-name-elo { font-size: 0.7rem !important; }
+      .genre-grid { grid-template-columns: 1fr 1fr !important; gap: 6px !important; }
+      #screen-genre { padding: 12px !important; }
+    }
+    @media (max-width: 480px) {
+      .genre-grid { grid-template-columns: 1fr !important; }
     }
   </style>
 </head>
 <body>
   <div id="app" class="min-h-screen flex flex-col">
     <!-- NAV -->
-    <nav class="px-6 py-4 flex items-center justify-between glass-card shrink-0 rounded-none border-t-0 border-x-0" style="background: rgba(15, 15, 35, 0.9); backdrop-filter: blur(16px);">
-      <h1 class="text-xl font-bold bg-gradient-to-r from-indigo-400 to-violet-300 bg-clip-text text-transparent">⚔️ Prompt Clash</h1>
-      <div id="nav-auth" class="flex items-center gap-4 text-sm">
-        <span id="nav-username" class="text-indigo-200 hidden font-medium"></span>
-        <button id="btn-logout" class="text-red-400 hover:text-red-300 hidden text-sm font-medium transition-colors" onclick="logout()">Logout</button>
+    <nav class="px-5 py-3 flex items-center justify-between shrink-0 rounded-none border-0" style="background: rgba(7, 7, 15, 0.95); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-bottom: 1px solid rgba(99, 102, 241, 0.06);">
+      <h1 class="text-lg font-extrabold tracking-tight" style="background: linear-gradient(135deg, #818cf8 0%, #c4b5fd 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">⚔️ Prompt Clash</h1>
+      <div id="nav-auth" class="flex items-center gap-3 text-sm">
+        <span id="nav-username" class="text-indigo-200 hidden font-medium text-sm"></span>
+        <button id="btn-logout" class="hidden text-xs font-medium px-3 py-1.5 rounded-lg transition-all" style="color: rgba(239, 68, 68, 0.7); background: rgba(239, 68, 68, 0.08); border: 1px solid rgba(239, 68, 68, 0.1);" onclick="logout()" onmouseover="this.style.background='rgba(239,68,68,0.15)'; this.style.color='#ef4444'" onmouseout="this.style.background='rgba(239,68,68,0.08)'; this.style.color='rgba(239,68,68,0.7)'">Logout</button>
       </div>
     </nav>
 
     <!-- SCREEN: AUTH -->
     <div id="screen-auth" class="screen active flex-1 flex items-center justify-center p-4">
-      <div class="glass-card p-8 rounded-2xl w-full max-w-md animate-fade-in-up">
-        <h2 class="text-2xl font-bold text-center mb-2 bg-gradient-to-r from-indigo-400 to-violet-300 bg-clip-text text-transparent">Enter the Arena</h2>
-        <p class="text-center text-gray-500 text-sm mb-6">Sign in to battle</p>
-        <div id="auth-error" class="text-red-400 text-sm mb-3 text-center hidden"></div>
-        <input id="auth-username-field" type="text" placeholder="Username" autocomplete="username" class="w-full px-4 py-3 mb-3 rounded-xl bg-[#0f0f23]/80 border border-indigo-800/40 text-white glow-border outline-none placeholder:text-gray-600">
-        <input id="auth-password" type="password" placeholder="Password" autocomplete="current-password" class="w-full px-4 py-3 mb-5 rounded-xl bg-[#0f0f23]/80 border border-indigo-800/40 text-white glow-border outline-none placeholder:text-gray-600">
-        <div class="flex gap-3">
-          <button onclick="login()" class="flex-1 py-3 rounded-xl btn-primary text-base">Login</button>
-          <button onclick="register()" class="flex-1 py-3 rounded-xl btn-secondary text-base">Register</button>
+      <div class="w-full max-w-sm animate-fade-in-up" style="background: rgba(20, 20, 50, 0.7); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(99, 102, 241, 0.1); box-shadow: 0 8px 48px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(99, 102, 241, 0.04) inset; border-radius: 20px; padding: 36px 28px;">
+        <div class="text-center mb-7">
+          <div class="text-5xl mb-3" style="filter: drop-shadow(0 0 30px rgba(99,102,241,0.3));">⚔️</div>
+          <h2 class="text-2xl font-extrabold tracking-tight" style="background: linear-gradient(135deg, #818cf8 0%, #c4b5fd 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">Enter the Arena</h2>
+          <p class="text-gray-500 text-sm mt-1 font-medium">Sign in to battle</p>
+        </div>
+        <div id="auth-error" class="text-red-400 text-sm mb-3 text-center hidden px-3 py-2 rounded-lg" style="background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.1);"></div>
+        <div class="space-y-3">
+          <div class="auth-input-wrapper">
+            <span class="auth-input-icon">👤</span>
+            <input id="auth-username-field" type="text" placeholder="Username" autocomplete="username" class="w-full px-4 py-3 rounded-xl bg-[#0a0a18]/70 border border-indigo-800/30 text-white glow-border outline-none placeholder:text-gray-600 text-sm">
+          </div>
+          <div class="auth-input-wrapper">
+            <span class="auth-input-icon">🔑</span>
+            <input id="auth-password" type="password" placeholder="Password" autocomplete="current-password" class="w-full px-4 py-3 rounded-xl bg-[#0a0a18]/70 border border-indigo-800/30 text-white glow-border outline-none placeholder:text-gray-600 text-sm">
+          </div>
+        </div>
+        <div class="flex gap-3 mt-6">
+          <button onclick="login()" class="flex-1 py-3 rounded-xl btn-primary text-sm font-bold tracking-wide">Login</button>
+          <button onclick="register()" class="flex-1 py-3 rounded-xl btn-secondary text-sm font-bold tracking-wide">Register</button>
         </div>
       </div>
     </div>
 
     <!-- SCREEN: LOBBY -->
     <div id="screen-lobby" class="screen flex-1 flex flex-col items-center justify-center p-4 gap-6">
-      <div id="profile-card" class="flex items-center gap-5 glass-card p-6 rounded-2xl w-full max-w-md">
-        <div id="lobby-avatar" class="letter-avatar text-xl w-16 h-16 text-2xl">?</div>
-        <div>
-          <div id="lobby-username" class="text-xl font-bold text-white"></div>
-          <div class="text-indigo-300 text-sm font-medium"><span id="lobby-elo">1000</span> Elo</div>
-          <div class="text-xs text-gray-500"><span id="lobby-wins">0</span>W / <span id="lobby-games">0</span>G</div>
+      <div id="profile-card" class="flex items-center gap-5 animate-fade-in-up" style="background: rgba(20, 20, 50, 0.7); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid rgba(99, 102, 241, 0.08); border-radius: 20px; padding: 24px 28px; box-shadow: 0 8px 40px rgba(0, 0, 0, 0.3); width: 100%; max-width: 400px;">
+        <div id="lobby-avatar" class="letter-avatar text-xl w-16 h-16 text-2xl pulse-glow">?</div>
+        <div class="flex-1 min-w-0">
+          <div id="lobby-username" class="text-lg font-bold text-white truncate"></div>
+          <div class="flex items-center gap-3 mt-1.5 flex-wrap">
+            <span class="inline-flex items-center gap-1.5 text-indigo-300 text-sm font-semibold"><span style="color: #fbbf24;">★</span> <span id="lobby-elo">1000</span> Elo</span>
+            <span class="stat-badge text-xs text-gray-400"><span class="stat-badge-dot" style="background: #22c55e;"></span> <span id="lobby-wins">0</span>W</span>
+            <span class="stat-badge text-xs text-gray-400"><span class="stat-badge-dot" style="background: #6366f1;"></span> <span id="lobby-games">0</span>G</span>
+          </div>
         </div>
       </div>
-      <div class="flex gap-4">
-        <button onclick="findPublicMatch()" class="px-8 py-4 rounded-xl btn-primary text-lg">Find Public Match</button>
-        <button onclick="createPrivateRoom()" class="px-8 py-4 rounded-xl btn-secondary text-lg">Private Room</button>
+      <div class="flex gap-3 animate-fade-in-up" style="animation-delay: 0.1s;">
+        <button onclick="findPublicMatch()" class="px-7 py-3.5 rounded-xl btn-primary text-base font-bold tracking-wide">Find Public Match</button>
+        <button onclick="createPrivateRoom()" class="px-7 py-3.5 rounded-xl btn-secondary text-base font-bold tracking-wide">Private Room</button>
       </div>
-      <div id="private-room-code" class="text-2xl font-mono text-indigo-300 hidden glass-card px-6 py-3 rounded-xl tracking-wider"></div>
-      <div class="flex gap-2 items-center">
-        <input id="join-code-input" type="text" placeholder="Room Code" maxlength="4" class="w-32 px-4 py-3 rounded-xl bg-[#0f0f23]/80 border border-indigo-800/40 text-white text-center uppercase glow-border outline-none placeholder:text-gray-600">
-        <button onclick="joinPrivateRoom()" class="px-5 py-3 rounded-xl btn-ghost text-sm">Join</button>
+      <div id="private-room-code" class="hidden animate-slide-down" style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.15); border-radius: 12px; padding: 12px 20px;">
+        <span class="text-xs text-emerald-400 font-medium block mb-0.5">Room Code</span>
+        <span class="text-2xl font-bold font-mono tracking-[0.3em] text-center block text-emerald-300" id="private-room-code-value">????</span>
+      </div>
+      <div class="flex gap-2 items-center animate-fade-in-up" style="animation-delay: 0.2s;">
+        <input id="join-code-input" type="text" placeholder="Room Code" maxlength="4" class="w-28 px-4 py-3 rounded-xl bg-[#0a0a18]/70 border border-indigo-800/30 text-white text-center uppercase tracking-[0.2em] glow-border outline-none placeholder:text-gray-600 text-sm font-mono">
+        <button onclick="joinPrivateRoom()" class="px-5 py-3 rounded-xl btn-ghost text-sm font-medium">Join</button>
       </div>
     </div>
 
     <!-- SCREEN: MATCHING -->
-    <div id="screen-matching" class="screen flex-1 flex flex-col items-center justify-center gap-6">
-      <div class="text-6xl animate-pulse" style="filter: drop-shadow(0 0 20px rgba(99,102,241,0.3));">🔍</div>
-      <div class="text-xl text-indigo-300 font-medium">Searching for opponent...</div>
-      <div class="text-sm text-gray-500">Queue: <span id="queue-position" class="text-indigo-300 font-mono">1</span></div>
-      <button onclick="cancelMatch()" class="px-6 py-2 rounded-xl btn-danger text-sm">Cancel</button>
+    <div id="screen-matching" class="screen flex-1 flex flex-col items-center justify-center gap-5">
+      <div class="relative">
+        <div class="text-6xl animate-pulse" style="filter: drop-shadow(0 0 30px rgba(99,102,241,0.3));">🔍</div>
+        <div class="absolute -bottom-1 left-1/2 -translate-x-1/2 w-16 h-1 rounded-full" style="background: linear-gradient(90deg, transparent, #6366f1, transparent);"></div>
+      </div>
+      <div class="text-lg text-indigo-300 font-semibold tracking-wide">Searching for opponent</div>
+      <div class="group flex items-center gap-2 px-4 py-2 rounded-full" style="background: rgba(99,102,241,0.06); border: 1px solid rgba(99,102,241,0.06);">
+        <span class="text-xs text-gray-500">Queue</span>
+        <span id="queue-position" class="text-indigo-300 font-mono font-semibold">1</span>
+      </div>
+      <button onclick="cancelMatch()" class="px-6 py-2 rounded-xl btn-danger text-sm mt-2">Cancel</button>
     </div>
 
     <!-- SCREEN: WAITING ROOM -->
-    <div id="screen-waiting-room" class="screen flex-1 flex flex-col items-center justify-center gap-6">
-      <div class="text-6xl" style="filter: drop-shadow(0 0 20px rgba(99,102,241,0.2));">⏳</div>
-      <div class="text-xl text-indigo-300 font-medium">Room: <span id="waiting-room-code" class="font-mono font-bold text-indigo-200 tracking-widest"></span></div>
-      <div id="waiting-players" class="text-gray-500 text-sm">Waiting for opponent...</div>
-      <div class="flex gap-6 items-center mt-2">
-        <div class="flex flex-col items-center gap-2">
-          <div id="waiting-p1-avatar" class="letter-avatar w-14 h-14 text-lg">?</div>
-          <div id="waiting-p1-name" class="text-sm text-indigo-200 font-medium">You</div>
-        </div>
-        <div class="flex items-center text-xl font-bold text-gray-600">VS</div>
-        <div class="flex flex-col items-center gap-2">
-          <div id="waiting-p2-avatar" class="letter-avatar w-14 h-14 text-lg bg-gray-700">?</div>
-          <div id="waiting-p2-name" class="text-sm text-gray-500">Waiting...</div>
+    <div id="screen-waiting-room" class="screen flex-1 flex flex-col items-center justify-center gap-6 p-4">
+      <div class="animate-fade-in-up flex flex-col items-center gap-3">
+        <div class="text-5xl" style="filter: drop-shadow(0 0 30px rgba(99,102,241,0.2));">⏳</div>
+        <div class="text-center">
+          <div class="text-xs text-gray-500 font-medium uppercase tracking-widest mb-1">Room</div>
+          <div class="text-xl font-bold font-mono tracking-[0.25em] text-indigo-200"> <span id="waiting-room-code"></span></div>
         </div>
       </div>
-      <button onclick="leaveRoom()" class="px-6 py-2 rounded-xl btn-danger text-sm">Leave Room</button>
+      <div class="flex gap-8 items-center animate-fade-in-up" style="animation-delay: 0.15s;">
+        <div class="flex flex-col items-center gap-2">
+          <div id="waiting-p1-avatar" class="letter-avatar w-16 h-16 text-xl pulse-glow" style="background: #6366f1;">?</div>
+          <div id="waiting-p1-name" class="text-sm text-indigo-200 font-semibold">You</div>
+        </div>
+        <div class="flex flex-col items-center gap-1">
+          <div class="text-lg font-black text-gray-600 tracking-wider">VS</div>
+          <div class="w-8 h-px" style="background: linear-gradient(90deg, transparent, rgba(99,102,241,0.3), transparent);"></div>
+        </div>
+        <div class="flex flex-col items-center gap-2">
+          <div id="waiting-p2-avatar" class="letter-avatar w-16 h-16 text-xl" style="background: rgba(55, 55, 95, 0.8); border: 2px dashed rgba(99, 102, 241, 0.15);">?</div>
+          <div id="waiting-p2-name" class="text-sm text-gray-500 font-medium">Waiting...</div>
+        </div>
+      </div>
+      <div id="waiting-players" class="text-gray-500 text-xs animate-fade-in-up" style="animation-delay: 0.25s;">Waiting for opponent to join...</div>
+      <button onclick="leaveRoom()" class="px-6 py-2 rounded-xl btn-danger text-sm mt-2">Leave Room</button>
     </div>
 
     <!-- SCREEN: GENRE SELECT (P1) -->
-    <div id="screen-genre" class="screen flex-1 flex flex-col items-center justify-center gap-6">
-      <div class="text-2xl font-bold bg-gradient-to-r from-indigo-400 to-violet-300 bg-clip-text text-transparent">Choose the Battle Genre</div>
-      <div class="text-gray-500 text-sm">You are the host — pick the category</div>
-      <select id="genre-dropdown" class="w-72 px-4 py-4 rounded-xl bg-[#0f0f23]/80 border border-indigo-800/40 text-white text-lg text-center glow-border outline-none cursor-pointer">
-        <option value="Animals">🦁 Animals</option>
-        <option value="Machines">⚙️ Machines</option>
-        <option value="Mythical Creatures">🐉 Mythical Creatures</option>
-        <option value="Elements">🔥 Elements</option>
-        <option value="Cosmic">🌌 Cosmic</option>
-        <option value="Fantasy">🧙 Fantasy</option>
-        <option value="Sci-Fi">🚀 Sci-Fi</option>
-        <option value="Food">🍔 Food</option>
-        <option value="Sports">⚽ Sports</option>
-        <option value="Nature">🌿 Nature</option>
-        <option value="Magic">🔮 Magic</option>
-        <option value="Technology">💻 Technology</option>
-        <option value="Underwater">🐠 Underwater</option>
-        <option value="Dinosaurs">🦕 Dinosaurs</option>
-        <option value="Superheroes">🦸 Superheroes</option>
-        <option value="Weather">⛈️ Weather</option>
-        <option value="Robots">🤖 Robots</option>
-        <option value="Crystals & Gems">💎 Crystals & Gems</option>
-        <option value="Insects">🐛 Insects</option>
-        <option value="Cars & Vehicles">🚗 Cars & Vehicles</option>
-      </select>
-      <button onclick="lockGenre()" class="px-12 py-4 rounded-xl btn-primary text-xl">Lock In Genre</button>
+    <div id="screen-genre" class="screen flex-1 flex flex-col items-center justify-center gap-5 p-8">
+      <div class="text-center animate-fade-in-up">
+        <div class="text-4xl mb-2" style="filter: drop-shadow(0 0 30px rgba(99,102,241,0.2));">🎯</div>
+        <h2 class="text-xl font-extrabold tracking-tight" style="background: linear-gradient(135deg, #818cf8 0%, #c4b5fd 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">Choose the Battle Genre</h2>
+        <p class="text-gray-500 text-sm mt-1">Pick the category for this battle</p>
+      </div>
+      <div class="genre-grid grid grid-cols-3 gap-2 w-full max-w-lg animate-fade-in-up" style="animation-delay: 0.1s;">
+        <div class="genre-card" data-genre="Animals" onclick="selectGenre(this)">🦁 Animals</div>
+        <div class="genre-card" data-genre="Machines" onclick="selectGenre(this)">⚙️ Machines</div>
+        <div class="genre-card" data-genre="Mythical Creatures" onclick="selectGenre(this)">🐉 Mythical</div>
+        <div class="genre-card" data-genre="Elements" onclick="selectGenre(this)">🔥 Elements</div>
+        <div class="genre-card" data-genre="Cosmic" onclick="selectGenre(this)">🌌 Cosmic</div>
+        <div class="genre-card" data-genre="Fantasy" onclick="selectGenre(this)">🧙 Fantasy</div>
+        <div class="genre-card" data-genre="Sci-Fi" onclick="selectGenre(this)">🚀 Sci-Fi</div>
+        <div class="genre-card" data-genre="Food" onclick="selectGenre(this)">🍔 Food</div>
+        <div class="genre-card" data-genre="Sports" onclick="selectGenre(this)">⚽ Sports</div>
+        <div class="genre-card" data-genre="Nature" onclick="selectGenre(this)">🌿 Nature</div>
+        <div class="genre-card" data-genre="Magic" onclick="selectGenre(this)">🔮 Magic</div>
+        <div class="genre-card" data-genre="Technology" onclick="selectGenre(this)">💻 Tech</div>
+        <div class="genre-card" data-genre="Underwater" onclick="selectGenre(this)">🐠 Underwater</div>
+        <div class="genre-card" data-genre="Dinosaurs" onclick="selectGenre(this)">🦕 Dinosaurs</div>
+        <div class="genre-card" data-genre="Superheroes" onclick="selectGenre(this)">🦸 Heroes</div>
+        <div class="genre-card" data-genre="Weather" onclick="selectGenre(this)">⛈️ Weather</div>
+        <div class="genre-card" data-genre="Robots" onclick="selectGenre(this)">🤖 Robots</div>
+        <div class="genre-card" data-genre="Crystals & Gems" onclick="selectGenre(this)">💎 Gems</div>
+        <div class="genre-card" data-genre="Insects" onclick="selectGenre(this)">🐛 Insects</div>
+        <div class="genre-card" data-genre="Cars & Vehicles" onclick="selectGenre(this)">🚗 Vehicles</div>
+      </div>
+      <button id="lock-genre-btn" onclick="lockGenre()" class="px-12 py-3.5 rounded-xl btn-primary text-base font-bold tracking-wide animate-fade-in-up" style="animation-delay: 0.2s;" disabled>Lock In Genre</button>
     </div>
 
     <!-- SCREEN: WAITING GENRE (P2) -->
-    <div id="screen-waiting-genre" class="screen flex-1 flex flex-col items-center justify-center gap-4">
-      <div class="text-6xl animate-pulse" style="filter: drop-shadow(0 0 20px rgba(99,102,241,0.3));">🎲</div>
-      <div class="text-xl text-indigo-300 font-medium">Host is choosing the genre...</div>
+    <div id="screen-waiting-genre" class="screen flex-1 flex flex-col items-center justify-center gap-5">
+      <div class="text-6xl animate-pulse" style="filter: drop-shadow(0 0 30px rgba(99,102,241,0.3));">🎲</div>
+      <div class="text-lg text-indigo-300 font-semibold tracking-wide">Opponent is choosing the genre...</div>
+      <div class="w-32 h-1 rounded-full overflow-hidden" style="background: rgba(99,102,241,0.08);">
+        <div class="h-full rounded-full" style="background: linear-gradient(90deg, #6366f1, #818cf8); width: 100%; animation: pulseGlow 2s ease-in-out infinite;"></div>
+      </div>
     </div>
 
     <!-- SCREEN: BATTLE -->
     <div id="screen-battle" class="screen flex-1 flex flex-col p-3 gap-3 min-h-0">
-      <!-- Top Bar -->
-      <div class="flex items-center justify-between text-sm px-2 shrink-0">
-        <span class="text-indigo-300 font-bold text-base">⚔️ <span id="battle-genre">???</span></span>
-        <span class="text-gray-400">Round <span id="battle-round" class="text-indigo-200 font-medium">1</span></span>
-        <span id="battle-countdown" class="font-mono text-indigo-200 countdown text-base">30s</span>
+      <div class="flex items-center justify-between text-xs px-3 py-2 rounded-xl shrink-0" style="background: rgba(20, 20, 50, 0.4); backdrop-filter: blur(8px); border: 1px solid rgba(99, 102, 241, 0.05);">
+        <span class="font-bold tracking-wide" style="background: linear-gradient(135deg, #818cf8, #c4b5fd); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">⚔️ <span id="battle-genre">???</span></span>
+        <span class="flex items-center gap-2">
+          <span class="text-gray-500 font-medium">Round</span>
+          <span id="battle-round" class="font-bold text-indigo-200">1</span>
+        </span>
+        <span id="battle-countdown" class="font-bold font-mono countdown text-sm text-indigo-200">30s</span>
       </div>
 
-      <!-- Main Arena Row -->
       <div class="battle-main flex-1 flex items-stretch gap-3 min-h-0">
         <!-- P1 Side -->
-        <div class="player-side flex-1 flex flex-col items-center justify-between glass-panel rounded-2xl p-4 min-w-0">
-          <div class="player-avatar-section flex flex-col items-center gap-1 shrink-0">
+        <div class="player-side flex-1 flex flex-col items-center justify-between glass-panel rounded-2xl p-4 min-w-0" style="box-shadow: 0 4px 24px rgba(0,0,0,0.2);">
+          <div class="player-avatar-section flex flex-col items-center gap-1.5 shrink-0">
             <div id="battle-p1-avatar" class="letter-avatar w-14 h-14">?</div>
-            <div class="player-name-elo">
+            <div class="player-name-elo text-center">
               <div id="battle-p1-name" class="font-bold text-sm truncate max-w-full text-white"></div>
-              <div id="battle-p1-elo" class="text-xs text-indigo-300/80"></div>
+              <div id="battle-p1-elo" class="text-xs text-indigo-300/70"></div>
             </div>
           </div>
           <div class="player-input-section w-full flex-1 flex flex-col justify-center gap-2">
             <div id="battle-p1-input-area" class="text-center">
-              <input id="battle-p1-input" type="text" placeholder="Your entity..." class="w-full px-3 py-3 rounded-xl bg-[#0f0f23]/80 border border-indigo-800/40 text-white glow-border outline-none text-center text-sm placeholder:text-gray-600">
-              <button id="battle-p1-submit" onclick="submitEntity()" class="mt-2 w-full py-2.5 rounded-xl btn-primary text-sm">Submit</button>
+              <input id="battle-p1-input" type="text" placeholder="Your entity..." class="w-full px-3 py-3 rounded-xl bg-[#0a0a18]/70 border border-indigo-800/30 text-white glow-border outline-none text-center text-sm placeholder:text-gray-600">
+              <button id="battle-p1-submit" onclick="submitEntity()" class="mt-2 w-full py-2.5 rounded-xl btn-primary text-sm font-bold tracking-wide">Submit</button>
             </div>
-            <div id="battle-p1-ready" class="hidden flex-col items-center gap-1">
-              <div class="text-emerald-400 font-bold text-base">✅ Ready!</div>
-              <div id="battle-p1-entity-blur" class="entity-hidden text-sm text-gray-400"></div>
+            <div id="battle-p1-ready" class="hidden flex-col items-center gap-1 py-2">
+              <div class="flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full" style="background: #22c55e; box-shadow: 0 0 8px rgba(34,197,94,0.4);"></span>
+                <span class="text-emerald-400 font-bold text-sm">Ready!</span>
+              </div>
+              <div id="battle-p1-entity-blur" class="entity-hidden text-sm text-gray-500 mt-0.5"></div>
             </div>
           </div>
           <div class="player-hp-section w-full shrink-0 mt-2">
             <div class="flex items-center gap-2">
-              <span class="text-xs text-gray-500 w-8">HP</span>
+              <span class="text-xs font-medium text-gray-500 w-7">HP</span>
               <div class="flex-1 hp-bar-track">
                 <div id="battle-p1-hp" class="hp-bar h-full hp-safe" style="width:100%"></div>
               </div>
-              <span id="battle-p1-hp-text" class="text-xs font-bold w-8 text-right text-gray-300">100</span>
+              <span id="battle-p1-hp-text" class="text-xs font-bold w-8 text-right text-gray-400 tabular-nums">100</span>
             </div>
           </div>
         </div>
 
         <!-- Center Arena -->
-        <div id="arena-center" class="relative flex-[1.8] flex flex-col items-center justify-center glass-panel rounded-2xl overflow-hidden shrink-0 min-w-[200px]" style="border-color: rgba(99, 102, 241, 0.2); box-shadow: 0 0 30px rgba(99, 102, 241, 0.05);">
+        <div id="arena-center" class="relative flex-[1.8] flex flex-col items-center justify-center glass-panel rounded-2xl overflow-hidden shrink-0 min-w-[200px]" style="border-color: rgba(99, 102, 241, 0.12); box-shadow: 0 0 40px rgba(99, 102, 241, 0.04), 0 4px 24px rgba(0,0,0,0.2);">
           <div id="arena-emoji-p1" class="arena-emoji" style="left:10px">❓</div>
           <div id="arena-emoji-p2" class="arena-emoji" style="right:10px">❓</div>
           <div id="arena-entity-p1" class="arena-entity-label" style="left:10px"> </div>
           <div id="arena-entity-p2" class="arena-entity-label" style="right:10px"> </div>
-          <div id="fight-cloud" class="absolute inset-0 flex items-center justify-center pointer-events-none z-10 hidden bg-black/40 rounded-2xl">
+          <div id="fight-cloud" class="absolute inset-0 flex items-center justify-center pointer-events-none z-10 hidden" style="background: rgba(0,0,0,0.35); border-radius: inherit;">
             <div class="fight-cloud-inner bg-gradient-to-br from-yellow-400 via-orange-400 to-red-500 rounded-full">💥</div>
           </div>
-          <div id="arena-flash-overlay" class="absolute inset-0 pointer-events-none z-20 hidden rounded-2xl"></div>
-          <div id="arena-versus-text" class="text-2xl font-bold text-indigo-500/20">⚡</div>
+          <div id="arena-flash-overlay" class="absolute inset-0 pointer-events-none z-20 hidden" style="border-radius: inherit;"></div>
+          <div id="arena-versus-text" class="text-2xl font-bold" style="color: rgba(99, 102, 241, 0.15);">⚡</div>
           <div id="arena-damage-p1" class="damage-popup hidden"></div>
           <div id="arena-damage-p2" class="damage-popup hidden"></div>
           <div id="arena-desc" class="damage-text hidden"></div>
         </div>
 
         <!-- P2 Side -->
-        <div class="player-side flex-1 flex flex-col items-center justify-between glass-panel rounded-2xl p-4 min-w-0">
-          <div class="player-avatar-section flex flex-col items-center gap-1 shrink-0">
+        <div class="player-side flex-1 flex flex-col items-center justify-between glass-panel rounded-2xl p-4 min-w-0" style="box-shadow: 0 4px 24px rgba(0,0,0,0.2);">
+          <div class="player-avatar-section flex flex-col items-center gap-1.5 shrink-0">
             <div id="battle-p2-avatar" class="letter-avatar w-14 h-14">?</div>
-            <div class="player-name-elo">
+            <div class="player-name-elo text-center">
               <div id="battle-p2-name" class="font-bold text-sm truncate max-w-full text-white"></div>
-              <div id="battle-p2-elo" class="text-xs text-indigo-300/80"></div>
+              <div id="battle-p2-elo" class="text-xs text-indigo-300/70"></div>
             </div>
           </div>
           <div class="player-input-section w-full flex-1 flex flex-col justify-center gap-2">
             <div id="battle-p2-input-area" class="text-center">
-              <input id="battle-p2-input" type="text" placeholder="Your entity..." class="w-full px-3 py-3 rounded-xl bg-[#0f0f23]/80 border border-indigo-800/40 text-white glow-border outline-none text-center text-sm placeholder:text-gray-600" disabled>
-              <button id="battle-p2-submit" onclick="submitEntity()" class="mt-2 w-full py-2.5 rounded-xl btn-primary text-sm hidden">Submit</button>
+              <input id="battle-p2-input" type="text" placeholder="Your entity..." class="w-full px-3 py-3 rounded-xl bg-[#0a0a18]/70 border border-indigo-800/30 text-white glow-border outline-none text-center text-sm placeholder:text-gray-600" disabled>
+              <button id="battle-p2-submit" onclick="submitEntity()" class="mt-2 w-full py-2.5 rounded-xl btn-primary text-sm font-bold tracking-wide hidden">Submit</button>
             </div>
-            <div id="battle-p2-ready" class="hidden flex-col items-center gap-1">
-              <div class="text-emerald-400 font-bold text-base">✅ Ready!</div>
-              <div id="battle-p2-entity-blur" class="entity-hidden text-sm text-gray-400"></div>
+            <div id="battle-p2-ready" class="hidden flex-col items-center gap-1 py-2">
+              <div class="flex items-center gap-2">
+                <span class="w-2 h-2 rounded-full" style="background: #22c55e; box-shadow: 0 0 8px rgba(34,197,94,0.4);"></span>
+                <span class="text-emerald-400 font-bold text-sm">Ready!</span>
+              </div>
+              <div id="battle-p2-entity-blur" class="entity-hidden text-sm text-gray-500 mt-0.5"></div>
             </div>
           </div>
           <div class="player-hp-section w-full shrink-0 mt-2">
             <div class="flex items-center gap-2">
-              <span class="text-xs text-gray-500 w-8">HP</span>
+              <span class="text-xs font-medium text-gray-500 w-7">HP</span>
               <div class="flex-1 hp-bar-track">
                 <div id="battle-p2-hp" class="hp-bar h-full hp-safe" style="width:100%"></div>
               </div>
-              <span id="battle-p2-hp-text" class="text-xs font-bold w-8 text-right text-gray-300">100</span>
+              <span id="battle-p2-hp-text" class="text-xs font-bold w-8 text-right text-gray-400 tabular-nums">100</span>
             </div>
           </div>
         </div>
       </div>
 
       <!-- Battle Log -->
-      <div class="glass-panel rounded-xl p-3 shrink-0">
-        <div class="text-xs text-indigo-400/80 mb-1 font-medium">📜 Battle Log</div>
-        <div id="battle-log" class="log-container text-sm space-y-1">
-          <div class="text-gray-500 italic text-xs">Awaiting first battle...</div>
+      <div class="glass-panel rounded-xl shrink-0" style="background: rgba(20, 20, 50, 0.35); backdrop-filter: blur(6px);">
+        <div class="flex items-center gap-2 px-3 pt-2.5 pb-1.5">
+          <span class="text-xs text-gray-500 font-medium">📜 Log</span>
+        </div>
+        <div id="battle-log" class="log-container text-sm px-3 pb-2.5 space-y-0.5">
+          <div class="text-gray-600 italic text-xs">Awaiting first battle...</div>
         </div>
       </div>
     </div>
 
     <!-- SCREEN: GAME OVER -->
-    <div id="screen-gameover" class="screen flex-1 flex flex-col items-center justify-center gap-6 p-4">
-      <div id="gameover-icon" class="text-8xl" style="filter: drop-shadow(0 0 30px rgba(99,102,241,0.3));">🏆</div>
-      <div id="gameover-title" class="text-3xl font-bold bg-gradient-to-r from-indigo-400 to-violet-300 bg-clip-text text-transparent"></div>
-      <div id="gameover-details" class="text-gray-400 text-center max-w-md leading-relaxed"></div>
-      <button onclick="backToLobby()" class="px-10 py-4 rounded-xl btn-primary text-lg">Back to Lobby</button>
+    <div id="screen-gameover" class="screen flex-1 flex flex-col items-center justify-center gap-5 p-4">
+      <div class="text-center animate-fade-in-up">
+        <div id="gameover-icon" class="text-7xl mb-2" style="filter: drop-shadow(0 0 40px rgba(99,102,241,0.3));">🏆</div>
+        <div id="gameover-title" class="text-3xl font-extrabold tracking-tight" style="background: linear-gradient(135deg, #818cf8 0%, #c4b5fd 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;"></div>
+      </div>
+      <div id="gameover-details" class="text-gray-400 text-center max-w-sm leading-relaxed text-sm animate-fade-in-up" style="animation-delay: 0.15s;"></div>
+      <button onclick="backToLobby()" class="px-10 py-3.5 rounded-xl btn-primary text-base font-bold tracking-wide animate-fade-in-up" style="animation-delay: 0.25s;">Back to Lobby</button>
     </div>
   </div>
 
@@ -480,6 +660,7 @@
     let lastPhase = null;
     let lastLogLen = 0;
     let turnStartTime = 0;
+    let selectedGenre = null;
 
     // ============================================================
     // UTILITY
@@ -501,7 +682,18 @@
     }
 
     function avatarStyle(username) {
-      return `hsl(${hashCode(username || '') % 360}, 60%, 50%)`;
+      return `hsl(${hashCode(username || '') % 360}, 55%, 50%)`;
+    }
+
+    function setLoading(btn, loading) {
+      if (loading) {
+        btn.classList.add('btn-loading');
+        btn.dataset.text = btn.textContent;
+        btn.innerHTML = btn.dataset.text + '<span class="spinner"></span>';
+      } else {
+        btn.classList.remove('btn-loading');
+        if (btn.dataset.text) btn.textContent = btn.dataset.text;
+      }
     }
 
     // ============================================================
@@ -517,7 +709,6 @@
         showScreen('screen-auth');
         return;
       }
-      // Try to get full profile, fall back to saved username
       try {
         const res = await fetch('/api/profile', {
           headers: { Authorization: `Bearer ${currentToken}` }
@@ -532,7 +723,6 @@
           return;
         }
       } catch {}
-      // Profile fetch failed — use saved username, go to lobby anyway
       const savedName = localStorage.getItem('prompt_clash_username') || 'Player';
       currentProfile = { uid: '', username: savedName, elo: 1000, gamesPlayed: 0, gamesWon: 0 };
       document.getElementById('nav-username').textContent = savedName;
@@ -547,6 +737,8 @@
       const password = document.getElementById('auth-password').value;
       if (!username || !password) return showAuthError('Enter username and password');
       hideAuthError();
+      const btn = document.querySelector('#screen-auth .btn-primary');
+      setLoading(btn, true);
       try {
         const res = await fetch('/api/login', {
           method: 'POST',
@@ -558,7 +750,6 @@
         currentToken = data.token;
         localStorage.setItem('prompt_clash_token', currentToken);
         localStorage.setItem('prompt_clash_username', username);
-        // Build profile from login data — go straight to lobby
         currentProfile = { uid: data.uid, username: data.username, elo: 1000, avatarColor: avatarStyle(data.username) };
         document.getElementById('nav-username').textContent = currentProfile.username;
         document.getElementById('nav-username').classList.remove('hidden');
@@ -566,6 +757,7 @@
         showScreen('screen-lobby');
         renderLobby();
       } catch (e) { showAuthError(e.message); }
+      finally { setLoading(btn, false); }
     }
 
     async function register() {
@@ -575,6 +767,8 @@
       if (username.length < 2) return showAuthError('Username must be at least 2 characters');
       if (password.length < 4) return showAuthError('Password must be at least 4 characters');
       hideAuthError();
+      const btn = document.querySelector('#screen-auth .btn-secondary');
+      setLoading(btn, true);
       try {
         const res = await fetch('/api/register', {
           method: 'POST',
@@ -586,7 +780,6 @@
         currentToken = data.token;
         localStorage.setItem('prompt_clash_token', currentToken);
         localStorage.setItem('prompt_clash_username', username);
-        // Build profile from register data — go straight to lobby
         currentProfile = { uid: data.uid, username: data.username, elo: 1000, avatarColor: avatarStyle(data.username) };
         document.getElementById('nav-username').textContent = currentProfile.username;
         document.getElementById('nav-username').classList.remove('hidden');
@@ -594,6 +787,7 @@
         showScreen('screen-lobby');
         renderLobby();
       } catch (e) { showAuthError(e.message); }
+      finally { setLoading(btn, false); }
     }
 
     function logout() {
@@ -630,7 +824,18 @@
       document.getElementById('lobby-elo').textContent = p.elo || 1000;
       document.getElementById('lobby-wins').textContent = p.gamesWon || 0;
       document.getElementById('lobby-games').textContent = p.gamesPlayed || 0;
-      document.getElementById('private-room-code').classList.add('hidden');
+      const rc = document.getElementById('private-room-code');
+      rc.classList.add('hidden');
+    }
+
+    // ============================================================
+    // GENRE SELECT
+    // ============================================================
+    function selectGenre(el) {
+      document.querySelectorAll('.genre-card').forEach(c => c.classList.remove('selected'));
+      el.classList.add('selected');
+      selectedGenre = el.dataset.genre;
+      document.getElementById('lock-genre-btn').disabled = false;
     }
 
     // ============================================================
@@ -639,21 +844,22 @@
     async function findPublicMatch() {
       const token = await getToken();
       if (!token) return;
+      const btn = document.querySelector('#screen-lobby .btn-primary');
+      setLoading(btn, true);
       const res = await fetch('/api/find-match', {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` }
       });
       const data = await res.json();
+      setLoading(btn, false);
       if (!data.roomCode) return;
       roomCode = data.roomCode;
-      // Check if already matched (we joined an existing room)
       const stateRes = await fetch(`/api/game-state/${roomCode}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (stateRes.ok) {
         const state = await stateRes.json();
         if (state.phase !== 'waiting') {
-          // Already has opponent — go straight to battle
           playerSide = state.me?.side;
           lastPhase = state.phase;
           onPhaseChange(state);
@@ -663,10 +869,9 @@
           return;
         }
       }
-      // We're hosting — show waiting room
       showScreen('screen-waiting-room');
       document.getElementById('waiting-room-code').textContent = roomCode;
-      document.getElementById('waiting-players').textContent = 'Waiting for opponent...';
+      document.getElementById('waiting-players').textContent = 'Waiting for opponent to join...';
       updateWaitingRoom();
       startPolling();
     }
@@ -687,15 +892,19 @@
     async function createPrivateRoom() {
       const token = await getToken();
       if (!token) return;
+      const btn = document.querySelector('#screen-lobby .btn-secondary');
+      setLoading(btn, true);
       const res = await fetch('/api/create-room', {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` }
       });
+      setLoading(btn, false);
       if (!res.ok) return;
       const data = await res.json();
       roomCode = data.roomCode;
-      document.getElementById('private-room-code').textContent = 'Room: ' + roomCode;
-      document.getElementById('private-room-code').classList.remove('hidden');
+      const rc = document.getElementById('private-room-code');
+      document.getElementById('private-room-code-value').textContent = roomCode;
+      rc.classList.remove('hidden');
       showScreen('screen-waiting-room');
       document.getElementById('waiting-room-code').textContent = roomCode;
       updateWaitingRoom();
@@ -743,6 +952,7 @@
           const el = document.getElementById('waiting-p2-avatar');
           el.textContent = (state.opponent.username || '?').charAt(0).toUpperCase();
           el.style.backgroundColor = state.opponent.avatarColor || '#6366f1';
+          el.style.border = 'none';
           document.getElementById('waiting-p2-name').textContent = state.opponent.username || 'Opponent';
           document.getElementById('waiting-players').textContent = 'Opponent joined!';
         }
@@ -802,7 +1012,6 @@
       const phase = state.phase;
       if (state.me) playerSide = state.me.side;
 
-      // Update waiting room if opponent joined
       if (phase === 'genre_select' || phase === 'submitting' || phase === 'resolving' ||
         phase === 'round_result' || phase === 'game_over') {
         if (state.opponent && document.getElementById('screen-waiting-room').classList.contains(
@@ -811,27 +1020,24 @@
         }
       }
 
-      // Phase transitions
       if (phase !== lastPhase) {
         lastPhase = phase;
         onPhaseChange(state);
       }
 
-      // If in battle, update UI
       if (phase === 'submitting' || phase === 'resolving' || phase === 'round_result') {
         updateBattleUI(state);
       }
 
-      // Countdown
       if (phase === 'submitting') {
         updateCountdown(state);
       } else {
         if (countdownInterval) { clearInterval(countdownInterval);
           countdownInterval = null; }
         document.getElementById('battle-countdown').textContent = '--';
+        document.getElementById('battle-countdown').style.color = '';
       }
 
-      // Detect new battle log entry — trigger animation
       if (state.battleLog && state.battleLog.length > lastLogLen) {
         lastLogLen = state.battleLog.length;
         if (phase === 'round_result' || phase === 'game_over') {
@@ -847,6 +1053,9 @@
     function onPhaseChange(state) {
       switch (state.phase) {
         case 'genre_select':
+          selectedGenre = null;
+          document.querySelectorAll('.genre-card').forEach(c => c.classList.remove('selected'));
+          document.getElementById('lock-genre-btn').disabled = true;
           if (state.me && state.me.side === 'p1') {
             showScreen('screen-genre');
           } else {
@@ -858,23 +1067,19 @@
           document.getElementById('battle-round').textContent = (state.currentRound || 0) + 1;
           document.getElementById('battle-genre').textContent = state.genre || '???';
           turnStartTime = state.turnStartTime || Date.now();
-          // Reset own input field for new round
           {
             const side = state.me?.side;
             if (side) document.getElementById(`battle-${side}-input`).value = '';
           }
-          // Reset arena emojis to hide previous round's fight
           document.getElementById('arena-emoji-p1').textContent = '❓';
           document.getElementById('arena-emoji-p2').textContent = '❓';
           document.getElementById('arena-entity-p1').textContent = '';
           document.getElementById('arena-entity-p2').textContent = '';
           break;
         case 'round_result':
-          // stay on battle — animation will play
           break;
         case 'game_over':
           stopAllPolling();
-          // If there's a new log entry to animate, defer game over until animation finishes
           if (state.battleLog && state.battleLog.length > lastLogLen) {
             pendingGameOverState = state;
           } else {
@@ -882,7 +1087,6 @@
           }
           break;
         default:
-          // waiting phase — already on waiting-room screen
           break;
       }
     }
@@ -898,12 +1102,9 @@
       const serverElapsed = state.timeRemaining !== undefined ? 30 - state.timeRemaining : (Date.now() - state.turnStartTime) / 1000;
       const sincePoll = (Date.now() - (state.serverTime || Date.now())) / 1000;
       const remaining = Math.max(0, Math.ceil(30 - serverElapsed - Math.min(2, sincePoll)));
-      document.getElementById('battle-countdown').textContent = remaining + 's';
-      if (remaining <= 5) {
-        document.getElementById('battle-countdown').classList.add('text-red-400');
-      } else {
-        document.getElementById('battle-countdown').classList.remove('text-red-400');
-      }
+      const el = document.getElementById('battle-countdown');
+      el.textContent = remaining + 's';
+      el.style.color = remaining <= 5 ? '#ef4444' : remaining <= 10 ? '#f59e0b' : '';
     }
 
     // ============================================================
@@ -916,7 +1117,6 @@
       if (me) updatePlayerPanel(me.side, me, state);
       if (opp) updatePlayerPanel(opp.side, opp, state);
 
-      // Arena emojis & entity names from last log
       const log = state.battleLog;
       if (log && log.length > 0) {
         const last = log[log.length - 1];
@@ -924,13 +1124,6 @@
         document.getElementById('arena-emoji-p2').textContent = last.player2Emoji || '❓';
         document.getElementById('arena-entity-p1').textContent = last.p1Entity || '';
         document.getElementById('arena-entity-p2').textContent = last.p2Entity || '';
-      } else if (state.phase === 'submitting') {
-        // Show opponent's chosen entity once both have submitted
-        const opp = state.opponent;
-        const me = state.me;
-        if (opp?.ready && me?.ready) {
-          // Names will be populated when battle log arrives
-        }
       }
 
       renderLog(state.battleLog);
@@ -949,14 +1142,12 @@
       const submitBtn = document.getElementById(`battle-${prefix}-submit`);
       const blurEl = document.getElementById(`battle-${prefix}-entity-blur`);
 
-      // Avatar
       const uname = data?.username || '?';
       avatarEl.textContent = uname.charAt(0).toUpperCase();
       avatarEl.style.backgroundColor = data?.avatarColor || avatarStyle(uname);
       nameEl.textContent = uname;
       eloEl.textContent = (data?.elo || 1000) + ' Elo';
 
-      // HP
       const hp = data?.hp ?? 100;
       hpBar.style.width = Math.max(0, hp) + '%';
       hpText.textContent = Math.max(0, hp);
@@ -975,12 +1166,11 @@
         } else if (state.phase === 'submitting' && data?.ready) {
           inputArea.classList.add('hidden');
           readyEl.classList.remove('hidden');
-          blurEl.textContent = '(submitted)';
-          blurEl.className = 'entity-hidden text-base text-gray-400';
+          blurEl.textContent = 'Submitted!';
+          blurEl.className = 'entity-hidden text-base text-emerald-400';
         } else {
           inputArea.classList.add('hidden');
           readyEl.classList.remove('hidden');
-          // Show revealed entity from log
           const log = state.battleLog;
           if (log && log.length > 0) {
             const last = log[log.length - 1];
@@ -990,12 +1180,11 @@
           }
         }
       } else {
-        // Opponent view
         if (state.phase === 'submitting' && data?.ready) {
           inputArea.classList.add('hidden');
           readyEl.classList.remove('hidden');
-          blurEl.textContent = '(submitted)';
-          blurEl.className = 'entity-hidden text-base text-gray-400';
+          blurEl.textContent = 'Submitted!';
+          blurEl.className = 'entity-hidden text-base text-emerald-400';
         } else if (state.phase === 'submitting') {
           inputArea.classList.remove('hidden');
           readyEl.classList.add('hidden');
@@ -1020,12 +1209,12 @@
     function renderLog(log) {
       const el = document.getElementById('battle-log');
       if (!log || log.length === 0) {
-        el.innerHTML = '<div class="text-gray-500 italic">Awaiting first battle...</div>';
+        el.innerHTML = '<div class="text-gray-600 italic text-xs">Awaiting first battle...</div>';
         return;
       }
       el.innerHTML = log.map((entry, i) =>
         `<div class="text-sm py-0.5 ${i === log.length - 1 ? 'text-indigo-200' : 'text-gray-400'}">
-          <span class="text-indigo-400 font-medium">R${entry.round}:</span>
+          <span class="text-indigo-400 font-medium">R${entry.round}</span>
           ${entry.description}
         </div>`
       ).join('');
@@ -1046,10 +1235,9 @@
         alert('Enter a real concept (2+ chars, max 6 words).');
         return;
       }
-      // Disable immediately to prevent double-submit
       input.disabled = true;
       btn.disabled = true;
-      btn.textContent = 'Submitting...';
+      btn.textContent = 'Sending...';
       const token = await getToken();
       if (!token) {
         input.disabled = false;
@@ -1063,7 +1251,6 @@
         body: JSON.stringify({ code: roomCode, entity })
       });
       if (!res.ok) {
-        // Re-enable on failure
         input.disabled = false;
         btn.disabled = false;
         btn.textContent = 'Submit';
@@ -1076,13 +1263,15 @@
     // LOCK GENRE
     // ============================================================
     async function lockGenre() {
-      const genre = document.getElementById('genre-dropdown').value;
+      if (!selectedGenre) return;
       const token = await getToken();
       if (!token) return;
+      const btn = document.getElementById('lock-genre-btn');
+      setLoading(btn, true);
       await fetch('/api/lock-genre', {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: roomCode, genre })
+        body: JSON.stringify({ code: roomCode, genre: selectedGenre })
       });
     }
 
@@ -1101,13 +1290,12 @@
       const dmgP2 = document.getElementById('arena-damage-p2');
       const descEl = document.getElementById('arena-desc');
 
-      // Reset
       vsText.classList.add('hidden');
       dmgP1.classList.add('hidden');
       dmgP2.classList.add('hidden');
       descEl.classList.add('hidden');
-      emojiP1.style.transition = 'all 0.5s ease-in-out';
-      emojiP2.style.transition = 'all 0.5s ease-in-out';
+      emojiP1.style.transition = 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)';
+      emojiP2.style.transition = 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)';
       emojiP1.style.transform = 'translateX(0)';
       emojiP2.style.transform = 'translateX(0)';
       emojiP1.style.opacity = '1';
@@ -1125,25 +1313,23 @@
       flash.classList.remove('flash-overlay');
       arena.classList.remove('shake');
 
-      // Force reflow
       void arena.offsetWidth;
 
-      // Phase 1 — Approach (0–800ms): both slide to center
+      // Phase 1 — Approach
       emojiP1.style.transform = 'translateX(50px)';
       emojiP2.style.transform = 'translateX(-50px)';
       await sleep(800);
 
-      // Phase 2 — Clash (800–1700ms): fight cloud
+      // Phase 2 — Clash
       cloud.classList.remove('hidden');
       emojiP1.classList.add('hidden');
       emojiP2.classList.add('hidden');
       await sleep(900);
 
-      // Clear previous entity labels
       document.getElementById('arena-entity-p1').textContent = '';
       document.getElementById('arena-entity-p2').textContent = '';
 
-      // Phase 3 — Reveal (1700–2500ms): cloud clears, show both emoji + names
+      // Phase 3 — Reveal
       cloud.classList.add('hidden');
       const isTie = entry.winner === 'tie';
       emojiP1.classList.remove('hidden');
@@ -1152,7 +1338,7 @@
       emojiP2.style.transform = 'translateX(0)';
       emojiP1.style.left = '10px';
       emojiP2.style.right = '10px';
-      // Show entity names under emojis
+
       document.getElementById('arena-entity-p1').textContent = entry.p1Entity || '';
       document.getElementById('arena-entity-p2').textContent = entry.p2Entity || '';
       await sleep(900);
@@ -1162,7 +1348,7 @@
         const loserSide = p1Wins ? 'p2' : 'p1';
         const winnerSide = p1Wins ? 'p1' : 'p2';
 
-        // Phase 4 — Impact (2600–3600ms): dash, shake, show damage
+        // Phase 4 — Impact
         const dashDir = p1Wins ? '200px' : '-200px';
         const winnerEmoji = p1Wins ? emojiP1 : emojiP2;
         const loserEmoji = p1Wins ? emojiP2 : emojiP1;
@@ -1174,7 +1360,6 @@
         flash.classList.remove('hidden');
         flash.classList.add('flash-overlay');
 
-        // Show damage popup on loser
         const dmgEl = loserSide === 'p1' ? dmgP1 : dmgP2;
         dmgEl.textContent = `-${entry.damage}`;
         dmgEl.className = 'damage-popup';
@@ -1183,7 +1368,6 @@
         dmgEl.style.top = '30%';
         dmgEl.classList.remove('hidden');
 
-        // Show counter damage on winner if any
         if (entry.counterDamage > 0) {
           const cdmgEl = winnerSide === 'p1' ? dmgP1 : dmgP2;
           cdmgEl.textContent = `-${entry.counterDamage}`;
@@ -1194,25 +1378,21 @@
           cdmgEl.classList.remove('hidden');
         }
 
-        // Update loser HP bar
         const loserHp = p1Wins ? state.opponent?.hp : state.me?.hp || 0;
         const hpBar = document.getElementById(`battle-${loserSide}-hp`);
         hpBar.style.width = Math.max(0, loserHp) + '%';
-        // Also update winner HP if counterDamage
         if (entry.counterDamage > 0) {
           const winnerHp = p1Wins ? state.me?.hp : state.opponent?.hp || 0;
           const wHpBar = document.getElementById(`battle-${winnerSide}-hp`);
           wHpBar.style.width = Math.max(0, winnerHp) + '%';
         }
 
-        // Show battle description
         descEl.textContent = entry.description || '';
         descEl.className = 'damage-text';
         descEl.classList.remove('hidden');
 
         await sleep(1000);
 
-        // Cleanup phase 4
         arena.classList.remove('shake');
         flash.classList.add('hidden');
         winnerEmoji.classList.remove('dash-attack');
@@ -1221,7 +1401,6 @@
         dmgP2.classList.add('hidden');
         descEl.classList.add('hidden');
       } else {
-        // Tie — show tie message
         descEl.textContent = entry.description || 'A perfectly matched battle! Neither prevails.';
         descEl.className = 'damage-text';
         descEl.style.color = '#fbbf24';
@@ -1232,12 +1411,10 @@
 
       await sleep(400);
 
-      // Phase 5 — Show entities in log area
       const log = document.getElementById('battle-log');
       renderLog(state.battleLog);
       log.scrollTop = log.scrollHeight;
 
-      // Reveal entity names in panels
       const p1Blur = document.getElementById('battle-p1-entity-blur');
       const p2Blur = document.getElementById('battle-p2-entity-blur');
       if (entry.p1Entity) {
@@ -1252,7 +1429,6 @@
       vsText.classList.remove('hidden');
       isAnimating = false;
       if (pendingGameOverState) {
-        // Show final entities on battle screen for 5s before transitioning to game over
         await sleep(5000);
         showGameOver(pendingGameOverState);
         pendingGameOverState = null;
@@ -1270,17 +1446,29 @@
       const iWon = me && opp && me.hp > 0 && opp.hp <= 0;
       document.getElementById('gameover-icon').textContent = iWon ? '🏆' : '💀';
       document.getElementById('gameover-title').textContent = iWon ? 'Victory!' : 'Defeated';
-      let details = `${me?.username || 'You'}: ${me?.hp || 0} HP &nbsp;|&nbsp; ${opp?.username || 'Opponent'}: ${opp?.hp || 0} HP`;
-      // Update profile elo from result and show elo change
+      let details = `<div class="flex items-center justify-center gap-4 mt-2">
+        <div class="text-center">
+          <div class="text-xs text-indigo-400 font-medium">${me?.username || 'You'}</div>
+          <div class="text-xl font-bold text-white">${me?.hp || 0} <span class="text-xs text-gray-500">HP</span></div>
+        </div>
+        <div class="text-gray-600 text-lg font-bold">VS</div>
+        <div class="text-center">
+          <div class="text-xs text-indigo-400 font-medium">${opp?.username || 'Opponent'}</div>
+          <div class="text-xl font-bold text-white">${opp?.hp || 0} <span class="text-xs text-gray-500">HP</span></div>
+        </div>
+      </div>`;
       if (state.battleLog && state.battleLog.length > 0) {
         const last = state.battleLog[state.battleLog.length - 1];
         if (last.eloChange) {
           const ec = last.eloChange;
           const myChange = ec.winner.username === me?.username ? ec.winner : ec.loser;
-          const oppChange = ec.winner.username === opp?.username ? ec.winner : ec.loser;
           if (currentProfile) currentProfile.elo = myChange.newElo;
-          details += `<br><span class="text-indigo-300 text-sm mt-2">${ec.winner.username}: ${ec.winner.oldElo} → ${ec.winner.newElo} (+${ec.winner.newElo - ec.winner.oldElo})</span>`;
-          details += `<br><span class="text-gray-400 text-sm">${ec.loser.username}: ${ec.loser.oldElo} → ${ec.loser.newElo} (${ec.loser.newElo - ec.loser.oldElo})</span>`;
+          details += `<div class="mt-4 pt-3" style="border-top: 1px solid rgba(99, 102, 241, 0.08);">
+            <div class="flex justify-center gap-6 text-sm">
+              <div><span class="text-indigo-300">${ec.winner.username}</span> <span class="text-emerald-400">${ec.winner.oldElo}→${ec.winner.newElo} (+${ec.winner.newElo - ec.winner.oldElo})</span></div>
+              <div><span class="text-gray-400">${ec.loser.username}</span> <span class="text-red-400">${ec.loser.oldElo}→${ec.loser.newElo} (${ec.loser.newElo - ec.loser.oldElo})</span></div>
+            </div>
+          </div>`;
         }
       }
       document.getElementById('gameover-details').innerHTML = details;
@@ -1289,9 +1477,7 @@
     async function backToLobby() {
       const token = await getToken();
       if (token) {
-        // Leave/abandon old room on server
         await fetch('/api/leave-room', { method: 'POST', headers: { Authorization: `Bearer ${token}` } });
-        // Refresh profile to get updated elo
         try {
           const res = await fetch('/api/profile', {
             headers: { Authorization: `Bearer ${token}` }
