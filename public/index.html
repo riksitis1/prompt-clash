@@ -155,6 +155,30 @@
       font-weight: 500;
       letter-spacing: 0.02em;
     }
+    .damage-popup {
+      position: absolute;
+      font-size: 2rem;
+      font-weight: 900;
+      pointer-events: none;
+      z-index: 20;
+      animation: floatUp 1.2s ease-out forwards;
+    }
+    @keyframes floatUp {
+      0% { opacity: 1; transform: translateY(0) scale(1); }
+      100% { opacity: 0; transform: translateY(-80px) scale(1.4); }
+    }
+    .damage-text {
+      position: absolute;
+      bottom: 4px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-align: center;
+      width: 100%;
+      z-index: 7;
+      pointer-events: none;
+      padding: 0 4px;
+      line-height: 1.2;
+    }
     .fight-cloud-inner {
       animation: cloudPulse 0.9s ease-out forwards;
       width: 170px;
@@ -352,6 +376,9 @@
           </div>
           <div id="arena-flash-overlay" class="absolute inset-0 pointer-events-none z-20 hidden rounded-2xl"></div>
           <div id="arena-versus-text" class="text-2xl font-bold text-indigo-500/20">⚡</div>
+          <div id="arena-damage-p1" class="damage-popup hidden"></div>
+          <div id="arena-damage-p2" class="damage-popup hidden"></div>
+          <div id="arena-desc" class="damage-text hidden"></div>
         </div>
 
         <!-- P2 Side -->
@@ -964,6 +991,10 @@
       const btn = document.getElementById(`battle-${side}-submit`);
       const entity = input.value.trim();
       if (!entity) return;
+      if (entity.length < 2 || entity.split(/\s+/).length > 6) {
+        alert('Enter a real concept (2+ chars, max 6 words).');
+        return;
+      }
       // Disable immediately to prevent double-submit
       input.disabled = true;
       btn.disabled = true;
@@ -1015,9 +1046,15 @@
       const cloud = document.getElementById('fight-cloud');
       const flash = document.getElementById('arena-flash-overlay');
       const vsText = document.getElementById('arena-versus-text');
+      const dmgP1 = document.getElementById('arena-damage-p1');
+      const dmgP2 = document.getElementById('arena-damage-p2');
+      const descEl = document.getElementById('arena-desc');
 
       // Reset
       vsText.classList.add('hidden');
+      dmgP1.classList.add('hidden');
+      dmgP2.classList.add('hidden');
+      descEl.classList.add('hidden');
       emojiP1.style.transition = 'all 0.5s ease-in-out';
       emojiP2.style.transition = 'all 0.5s ease-in-out';
       emojiP1.style.transform = 'translateX(0)';
@@ -1051,49 +1088,105 @@
       emojiP2.classList.add('hidden');
       await sleep(900);
 
-      // Phase 3 — Reveal (1700–2500ms): cloud clears, winner visible
+      // Clear previous entity labels
+      document.getElementById('arena-entity-p1').textContent = '';
+      document.getElementById('arena-entity-p2').textContent = '';
+
+      // Phase 3 — Reveal (1700–2500ms): cloud clears, show both emoji + names
       cloud.classList.add('hidden');
-      const p1Wins = entry.winner === 'player1';
-      const winnerEmoji = p1Wins ? emojiP1 : emojiP2;
-      const loserEmoji = p1Wins ? emojiP2 : emojiP1;
-      winnerEmoji.classList.remove('hidden');
-      loserEmoji.classList.add('hidden');
-      winnerEmoji.style.transform = 'translateX(0)';
-      winnerEmoji.style.left = p1Wins ? '10px' : '';
-      winnerEmoji.style.right = p1Wins ? '' : '10px';
-      await sleep(800);
-
-      // Phase 4 — Impact (2500–3500ms): dash and shake
-      const isP1 = state.me?.side === 'p1';
-      const dashDir = p1Wins ? '200px' : '-200px';
-      winnerEmoji.style.setProperty('--dash-target', dashDir);
-      winnerEmoji.classList.add('dash-attack');
-      arena.classList.add('shake');
-      flash.classList.remove('hidden');
-      flash.classList.add('flash-overlay');
-
-      // Update losing player's HP bar
-      const loserSide = p1Wins ? 'p2' : 'p1';
-      const loserHp = p1Wins ? state.opponent?.hp : state.me?.hp || 0;
-      const hpBar = document.getElementById(`battle-${loserSide}-hp`);
-      hpBar.style.width = Math.max(0, loserHp) + '%';
-
+      const isTie = entry.winner === 'tie';
+      emojiP1.classList.remove('hidden');
+      emojiP2.classList.remove('hidden');
+      emojiP1.style.transform = 'translateX(0)';
+      emojiP2.style.transform = 'translateX(0)';
+      emojiP1.style.left = '10px';
+      emojiP2.style.right = '10px';
+      // Show entity names under emojis
+      document.getElementById('arena-entity-p1').textContent = entry.p1Entity || '';
+      document.getElementById('arena-entity-p2').textContent = entry.p2Entity || '';
       await sleep(900);
 
-      // Cleanup phase 4
-      arena.classList.remove('shake');
-      flash.classList.add('hidden');
-      winnerEmoji.classList.remove('dash-attack');
-      winnerEmoji.style.transform = 'translateX(0)';
+      if (!isTie) {
+        const p1Wins = entry.winner === 'player1';
+        const loserSide = p1Wins ? 'p2' : 'p1';
+        const winnerSide = p1Wins ? 'p1' : 'p2';
+
+        // Phase 4 — Impact (2600–3600ms): dash, shake, show damage
+        const dashDir = p1Wins ? '200px' : '-200px';
+        const winnerEmoji = p1Wins ? emojiP1 : emojiP2;
+        const loserEmoji = p1Wins ? emojiP2 : emojiP1;
+        loserEmoji.classList.add('hidden');
+
+        winnerEmoji.style.setProperty('--dash-target', dashDir);
+        winnerEmoji.classList.add('dash-attack');
+        arena.classList.add('shake');
+        flash.classList.remove('hidden');
+        flash.classList.add('flash-overlay');
+
+        // Show damage popup on loser
+        const dmgEl = loserSide === 'p1' ? dmgP1 : dmgP2;
+        dmgEl.textContent = `-${entry.damage}`;
+        dmgEl.className = 'damage-popup';
+        dmgEl.style.color = '#ef4444';
+        dmgEl.style.left = loserSide === 'p1' ? '15%' : '75%';
+        dmgEl.style.top = '30%';
+        dmgEl.classList.remove('hidden');
+
+        // Show counter damage on winner if any
+        if (entry.counterDamage > 0) {
+          const cdmgEl = winnerSide === 'p1' ? dmgP1 : dmgP2;
+          cdmgEl.textContent = `-${entry.counterDamage}`;
+          cdmgEl.className = 'damage-popup';
+          cdmgEl.style.color = '#f59e0b';
+          cdmgEl.style.left = winnerSide === 'p1' ? '15%' : '75%';
+          cdmgEl.style.top = '30%';
+          cdmgEl.classList.remove('hidden');
+        }
+
+        // Update loser HP bar
+        const loserHp = p1Wins ? state.opponent?.hp : state.me?.hp || 0;
+        const hpBar = document.getElementById(`battle-${loserSide}-hp`);
+        hpBar.style.width = Math.max(0, loserHp) + '%';
+        // Also update winner HP if counterDamage
+        if (entry.counterDamage > 0) {
+          const winnerHp = p1Wins ? state.me?.hp : state.opponent?.hp || 0;
+          const wHpBar = document.getElementById(`battle-${winnerSide}-hp`);
+          wHpBar.style.width = Math.max(0, winnerHp) + '%';
+        }
+
+        // Show battle description
+        descEl.textContent = entry.description || '';
+        descEl.className = 'damage-text';
+        descEl.classList.remove('hidden');
+
+        await sleep(1000);
+
+        // Cleanup phase 4
+        arena.classList.remove('shake');
+        flash.classList.add('hidden');
+        winnerEmoji.classList.remove('dash-attack');
+        winnerEmoji.style.transform = 'translateX(0)';
+        dmgP1.classList.add('hidden');
+        dmgP2.classList.add('hidden');
+        descEl.classList.add('hidden');
+      } else {
+        // Tie — show tie message
+        descEl.textContent = entry.description || 'A perfectly matched battle! Neither prevails.';
+        descEl.className = 'damage-text';
+        descEl.style.color = '#fbbf24';
+        descEl.classList.remove('hidden');
+        await sleep(1000);
+        descEl.classList.add('hidden');
+      }
 
       await sleep(400);
 
-      // Phase 5 — Reveal entities in log area
+      // Phase 5 — Show entities in log area
       const log = document.getElementById('battle-log');
       renderLog(state.battleLog);
       log.scrollTop = log.scrollHeight;
 
-      // Show entities
+      // Reveal entity names in panels
       const p1Blur = document.getElementById('battle-p1-entity-blur');
       const p2Blur = document.getElementById('battle-p2-entity-blur');
       if (entry.p1Entity) {
@@ -1105,9 +1198,7 @@
         p2Blur.className = 'entity-revealed text-base text-indigo-200';
       }
 
-      // Show VS text again if back to submitting
       vsText.classList.remove('hidden');
-
       isAnimating = false;
     }
 
@@ -1122,8 +1213,19 @@
       const iWon = me && opp && me.hp > 0 && opp.hp <= 0;
       document.getElementById('gameover-icon').textContent = iWon ? '🏆' : '💀';
       document.getElementById('gameover-title').textContent = iWon ? 'Victory!' : 'Defeated';
-      document.getElementById('gameover-details').innerHTML =
-        `${me?.username || 'You'}: ${me?.hp || 0} HP &nbsp;|&nbsp; ${opp?.username || 'Opponent'}: ${opp?.hp || 0} HP`;
+      let details = `${me?.username || 'You'}: ${me?.hp || 0} HP &nbsp;|&nbsp; ${opp?.username || 'Opponent'}: ${opp?.hp || 0} HP`;
+      // Show elo change if available (last log entry)
+      if (state.battleLog && state.battleLog.length > 0) {
+        const last = state.battleLog[state.battleLog.length - 1];
+        if (last.eloChange) {
+          const ec = last.eloChange;
+          const myChange = ec.winner.username === me?.username ? ec.winner : ec.loser;
+          const oppChange = ec.winner.username === opp?.username ? ec.winner : ec.loser;
+          details += `<br><span class="text-indigo-300 text-sm mt-2">${ec.winner.username}: ${ec.winner.oldElo} → ${ec.winner.newElo} (+${ec.winner.newElo - ec.winner.oldElo})</span>`;
+          details += `<br><span class="text-gray-400 text-sm">${ec.loser.username}: ${ec.loser.oldElo} → ${ec.loser.newElo} (${ec.loser.newElo - ec.loser.oldElo})</span>`;
+        }
+      }
+      document.getElementById('gameover-details').innerHTML = details;
     }
 
     function backToLobby() {

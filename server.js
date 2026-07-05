@@ -104,7 +104,7 @@ function sanitizeRoom(room, uid) {
   return {
     code: room.code, type: room.type, phase: room.phase, genre: room.genre,
     currentRound: room.currentRound,
-    battleLog: room.battleLog.map(e => ({ ...e })),
+    battleLog: room.battleLog.map(e => ({ ...e, eloChange: e.eloChange ? { ...e.eloChange } : undefined })),
     turnStartTime: room.turnStartTime,
     me: mySide ? {
       side: mySide, userId: room[mySide].userId, username: room[mySide].username,
@@ -186,7 +186,7 @@ async function getUserData(uid) {
 function startRoundTimer(room) {
   clearTimeout(room.roundTimer);
   room.turnStartTime = Date.now();
-  room.roundTimer = setTimeout(() => {
+  room.roundTimer = setTimeout(async () => {
     if (room.phase !== 'submitting') return;
     const p1Late = !room.p1.ready;
     const p2Late = !room.p2.ready;
@@ -210,10 +210,10 @@ function startRoundTimer(room) {
       if (room.p1.hp <= 0 || room.p2.hp <= 0) {
         const winner = room.p1.hp > 0 ? room.p1 : room.p2;
         const loser = room.p1.hp > 0 ? room.p2 : room.p1;
-        room.phase = 'game_over';
-        clearTimeout(room.advanceTimer);
-        updateEloAfterGame(room, winner, loser);
-        return;
+      room.phase = 'game_over';
+      clearTimeout(room.advanceTimer);
+      await updateEloAfterGame(room, winner, loser);
+      return;
       }
       room.phase = 'round_result';
       clearTimeout(room.advanceTimer);
@@ -254,7 +254,8 @@ Return ONLY valid JSON (no markdown, no extra text). This will be parsed program
 }
 
 STRICT RULES:
-- GENRE CHECK: If an entity does NOT belong to the "${genre}" genre, DISQUALIFY that player: they lose, take 40 damage, deal 0 counter-damage, and the description should be humorously dismissive.
+- ENTITY VALIDATION: Each entity MUST be a real, coherent concept or thing. If an entity is gibberish, nonsense, a random phrase (like "bradar what is this"), or not an actual thing, DISQUALIFY that player: they lose, take 40 damage, deal 0 counter-damage, and the description should be humorously dismissive.
+- GENRE CHECK: If an entity does NOT clearly belong to the "${genre}" genre, DISQUALIFY that player: they lose, take 40 damage, deal 0 counter-damage, and the description should be humorously dismissive.
 - TIES: If both entities are equally matched (same power level, identical, or neither clearly beats the other), set winner to "tie", damage to 0, and counterDamage to 0. Example: cat vs cat is a tie.
 - POWER DIFFERENCE: If one entity is only slightly stronger than the other, keep damage low (10-15) and counterDamage 0-5. If there's a clear power gap, damage can be 16-30. Disqualifications use 40.
 - EMOJIS: Pick a single creative emoji that best represents each entity. For example, "dragon" → "🐉", "water droplet" → "💧", "laser gun" → "🔫".
@@ -375,6 +376,10 @@ async function updateEloAfterGame(room, winner, loser) {
       winner: { username: winner.username, oldElo: wElo, newElo: result.newA },
       loser: { username: loser.username, oldElo: lElo, newElo: result.newB },
     };
+    // Attach elo change to last battle log entry
+    if (room.battleLog.length > 0) {
+      room.battleLog[room.battleLog.length - 1].eloChange = room.eloChange;
+    }
   } catch (e) { console.error('Elo update error:', e); }
 }
 
