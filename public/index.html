@@ -1224,6 +1224,25 @@
     // ============================================================
     // SUBMIT ENTITY
     // ============================================================
+    function isGibberish(entity) {
+      const words = entity.toLowerCase().replace(/[^a-z0-9\s-]/g, '').split(/\s+/).filter(w => w.length > 0);
+      if (words.length <= 2) return false;
+      const common = new Set(['super','ultra','mega','hyper','uber','giga','tera','gem','ball','blade','blast',
+        'cannon','core','crystal','dark','death','dragon','fire','flame','force','frost','fury','hammer',
+        'heart','ice','iron','king','knight','light','lightning','lord','magic','master','moon','nova',
+        'power','queen','shadow','shield','silver','skull','soul','star','steel','storm','sun','sword',
+        'thunder','warrior','water','wind','wolf','world','a','an','the','this','that','it','is','in','of',
+        'to','and','or','for','with','on','as','at','by','be']);
+      let unknown = 0;
+      for (const w of words) { if (!common.has(w) && w.length > 2) unknown++; }
+      if (words.length >= 3 && unknown >= 2) return true;
+      const suffixes = words.map(w => w.length >= 3 ? w.slice(-3) : '');
+      const counts = {};
+      for (const s of suffixes) { if (s.length >= 3) counts[s] = (counts[s] || 0) + 1; }
+      for (const s in counts) { if (counts[s] >= 3) return true; }
+      return false;
+    }
+
     async function submitEntity() {
       const side = playerSide;
       if (!side) return;
@@ -1233,6 +1252,13 @@
       if (!entity) return;
       if (entity.length < 2 || entity.split(/\s+/).length > 6) {
         alert('Enter a real concept (2+ chars, max 6 words).');
+        return;
+      }
+      if (isGibberish(entity)) {
+        alert('That looks like gibberish! Enter a real concept or thing. Gibberish will be disqualified.');
+        input.disabled = false;
+        btn.disabled = false;
+        btn.textContent = 'Submit';
         return;
       }
       input.disabled = true;

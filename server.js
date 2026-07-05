@@ -242,14 +242,145 @@ function startRoundTimer(room) {
 }
 
 // ============================================================
+// GIBBERISH DETECTION
+// ============================================================
+
+const COMMON_WORDS = new Set([
+  'a','an','the','this','that','it','is','in','of','to','and','or','for','with','on','as','at','by','be',
+  'super','ultra','mega','hyper','uber','giga','tera','peta','exa','omni','multi','poly','proto','neo',
+  'ball','blade','blaster','bolt','bomb','bone','boot','bow','brass','breaker','bringer','buster','cannon',
+  'carrier','caster','claw','cleaver','cloud','claw','collar','core','crasher','crusher','crystal','cube',
+  'cutlass','cycle','dagger','dancer','dark','death','demon','destroyer','devil','doom','dragon','drain',
+  'drill','driver','droplet','drum','earth','eater','edge','element','emerald','engine','eye','fairy',
+  'fist','flame','flare','flash','flesh','flight','flood','flower','force','forge','fragment','frost',
+  'fury','gale','gear','gem','ghost','giant','glacier','gland','glass','glide','globe','glove','golem',
+  'grasp','grave','gravity','grip','guard','guardian','gun','hail','hammer','hand','harpoon','heart',
+  'heaven','hell','helm','herald','hide','hollow','horn','howl','hunter','ice','inferno','iron','jade',
+  'jaw','judge','keeper','key','killer','king','knight','lash','lens','leon','level','light','lightning',
+  'lily','lion','liquid','lord','lore','lumen','lunar','mage','magma','magnet','mane','mantle','marble',
+  'mark','mask','master','maw','maze','meadow','mechanic','memory','mercy','mesh','metal','might','mind',
+  'mine','mirror','mist','monarch','monolith','monster','moon','mortal','moss','mother','mountain','mourn',
+  'mouth','mover','murk','nail','necklace','needle','nest','nether','night','noble','node','nova','oath',
+  'orb','ore','oven','pact','palm','panther','paragon','particle','passage','patch','path','patron',
+  'pattern','paw','peak','pearl','pendant','perch','phantom','phase','phoenix','piercer','pillar','pine',
+  'pinnacle','pixel','plague','plane','plasma','plate','plume','pocket','poem','point','poison','pole',
+  'polish','pollen','pond','pool','portal','powder','power','praise','prayer','prey','pride','prince',
+  'prism','probe','promise','prophet','prowl','pull','pulse','pump','punch','pupil','puppet','purity',
+  'puzzle','pyre','pyro','queen','quiver','rage','rain','ranger','raven','razor','reach','reaver','rebel',
+  'receiver','recluse','record','redeemer','reed','reaper','regent','relic','remnant','rend','render',
+  'rest','return','revenant','reverie','rhapsody','rhythm','ridge','rifle','rift','right','rigor','rim',
+  'ring','ranger','rival','river','roar','rocket','rod','rogue','roof','rook','root','rope','rose','rotor',
+  'rouge','round','route','royal','ruin','rune','rush','saber','sabre','sacrifice','saddle','saint',
+  'salvation','sanctum','sapphire','sash','savage','savior','scale','scar','scarab','scepter','scheme',
+  'scholar','sconce','scope','scorch','scourge','scout','scrap','scream','scribe','scroll','sculpture',
+  'seal','seam','season','seat','sea','secret','sect','seed','seeker','sense','sentinel','serpent',
+  'servant','shade','shadow','shard','shark','shatter','shear','sheath','shelf','shell','shield','shift',
+  'shimmer','shin','shire','shock','shooter','shard','shore','shot','shout','shrine','shroud','shrub',
+  'shuriken','siege','sight','signal','silence','silk','sill','silver','singer','sink','siren','skull',
+  'sky','slab','slate','slayer','sleep','slicer','slime','sling','slip','slope','sludge','smash','smelt',
+  'smile','smoke','snap','sniper','snow','soar','solar','soldier','sole','solid','song','sorcerer','soul',
+  'sound','source','space','spark','spawn','spear','specter','spell','sphere','spider','spike','spine',
+  'spirit','spite','splash','split','spore','spot','spray','spring','sprout','spur','spy','squad','square',
+  'squash','squid','stable','staff','stage','stain','stair','stake','stalk','stallion','stamp','stance',
+  'star','stare','stark','starlight','static','station','statue','stealth','steam','steed','steel','steep',
+  'stem','step','steward','stick','sting','stir','stitch','stock','stone','stool','stop','storage','storm',
+  'story','stove','strand','stranger','stratagem','stream','strength','strike','string','stripe','stroke',
+  'structure','stride','striker','string','stripe','stun','stygian','style','sub','substance','subtlety',
+  'sucker','suffering','sugar','suit','summer','summit','summoner','sun','sunder','sunlight','sunset',
+  'supernova','surge','surge','surround','surveillance','survivor','sustenance','swallow','swamp','swan',
+  'swarm','sway','sweat','sweep','sweet','swell','swift','swing','swipe','swirl','sword','symbol','system',
+  'table','tablet','tackle','tail','tailor','taint','talent','talon','tank','tap','tape','tar','target',
+  'task','taste','tattoo','taunt','tavern','tax','tea','teach','tear','tease','technique','teeth','tell',
+  'temper','tempest','temple','tempt','tendril','tenet','tent','tenth','tepid','term','terra','terror',
+  'test','thorn','thought','thread','threat','throne','throttle','through','throw','thrust','thumb',
+  'thunder','tide','tiger','tile','timber','time','tin','tincture','tinder','tinker','tire','tissue',
+  'titan','title','toad','toast','token','tomb','tome','tongue','tool','tooth','top','topaz','torch',
+  'tornado','torrent','torso','totem','touch','tour','tower','town','track','trade','trail','train',
+  'trait','trance','trap','trash','trauma','travel','treasure','treat','tree','trek','tremor','trench',
+  'trial','tribe','trick','trigger','trill','trinket','trip','trophy','tropic','trot','trouble','truce',
+  'trunk','trust','truth','try','tub','tube','tucker','tug','tumble','tumor','tune','tunnel','turbine',
+  'turmoil','turn','turtle','tusk','tutor','twig','twilight','twin','twine','twirl','twist','twister',
+  'tyrant',
+]);
+
+function isGibberish(entity) {
+  const words = entity.toLowerCase().replace(/[^a-z0-9\s-]/g, '').split(/\s+/).filter(w => w.length > 0);
+  if (words.length === 0) return true;
+  // Single word entities are fine
+  if (words.length <= 2) return false;
+  // Count how many words are NOT in common words
+  let unknown = 0;
+  for (const w of words) {
+    if (!COMMON_WORDS.has(w) && w.length > 2) unknown++;
+  }
+  // If >40% of words (min 2) are unrecognized, likely gibberish
+  if (words.length >= 3 && unknown >= 2) return true;
+  // Check for rhyming nonsense pattern: 3+ words ending with same sound
+  // e.g. "super duper luper guper" — "uper" repeated
+  const suffixes = words.map(w => w.length >= 3 ? w.slice(-3) : '');
+  const suffixCounts = {};
+  for (const s of suffixes) {
+    if (s.length >= 3) suffixCounts[s] = (suffixCounts[s] || 0) + 1;
+  }
+  for (const s in suffixCounts) {
+    if (suffixCounts[s] >= 3) return true;
+  }
+  return false;
+}
+
+// ============================================================
 // AI BATTLE RESOLUTION (Groq)
 // ============================================================
+
+async function resolveGibberish(room, g1, g2) {
+  // Both are gibberish — tie
+  if (g1 && g2) {
+    const data = {
+      winner: 'tie',
+      player1Emoji: '🤡',
+      player2Emoji: '🤡',
+      damage: 0,
+      counterDamage: 0,
+      description: 'Both players submitted nonsense. The battle devolves into chaotic gibberish. Nobody wins.'
+    };
+    const log = await applyBattleResult(room, data);
+    room.battleLog.push(log);
+    if (room.phase === 'game_over') return;
+    advanceAfterResolve(room);
+    return;
+  }
+  // One is gibberish — that player loses at 40 damage, 0 counter
+  const gSide = g1 ? 'player1' : 'player2';
+  const realSide = g1 ? 'player2' : 'player1';
+  const data = {
+    winner: realSide,
+    player1Emoji: g1 ? '🤡' : '✅',
+    player2Emoji: g2 ? '🤡' : '✅',
+    damage: 40,
+    counterDamage: 0,
+    description: g1
+      ? `"${room.p2.entity || '???'}" utterly demolishes the nonsensical "${room.p1.entity || '???'}". Gibberish stands no chance against a real concept!`
+      : `"${room.p1.entity || '???'}" utterly demolishes the nonsensical "${room.p2.entity || '???'}". Gibberish stands no chance against a real concept!`
+  };
+  const log = await applyBattleResult(room, data);
+  room.battleLog.push(log);
+  if (room.phase === 'game_over') return;
+  advanceAfterResolve(room);
+}
 
 async function resolveBattle(room) {
   room.phase = 'resolving';
   const genre = room.genre;
   const e1 = room.p1.entity;
   const e2 = room.p2.entity;
+
+  // Pre-check: auto-disqualify gibberish without calling AI
+  const g1 = isGibberish(e1);
+  const g2 = isGibberish(e2);
+  if (g1 || g2) {
+    // The result will be sent through the normal flow from applyBattleResult
+    return await resolveGibberish(room, g1, g2);
+  }
 
   const cacheKey = `${genre}::${e1}::${e2}`;
   if (battleCache.has(cacheKey)) {
@@ -261,12 +392,12 @@ async function resolveBattle(room) {
   }
 
   const prompt = `You are an AI battle judge for the genre "${genre}".
-
+	
 Player 1 submitted: "${e1}"
 Player 2 submitted: "${e2}"
-
+	
 Return ONLY valid JSON (no markdown, no extra text). This will be parsed programmatically:
-
+	
 {
   "winner": "player1" or "player2" or "tie",
   "player1Emoji": "single emoji representing entity1",
@@ -275,9 +406,9 @@ Return ONLY valid JSON (no markdown, no extra text). This will be parsed program
   "counterDamage": <integer 0-20>,
    "description": "1 punchy sentence (8-15 words) describing the action"
 }
-
+	
 STRICT RULES:
-- ENTITY VALIDATION: Each entity MUST be a real, coherent concept or thing. If an entity is gibberish, nonsense, a random phrase (like "bradar what is this"), or not an actual thing, DISQUALIFY that player: they lose, take 40 damage, deal 0 counter-damage, and the description should be humorously dismissive.
+- ENTITY VALIDATION: Each entity MUST be a real, coherent concept or thing. Gibberish includes made-up nonsense words strung together like "super duper luper guper gem", "blargle fargle shnargle", "zorp glorp florp snorp", "wibbly wobbly floob", "dooper snooper trooper gooper" — any phrase with 3+ made-up rhyming or silly words is GIBBERISH. If an entity is gibberish, nonsense, a random phrase (like "bradar what is this"), or not an actual thing, DISQUALIFY that player: they lose, take 40 damage, deal 0 counter-damage, and the description should be humorously dismissive. Even if the entity contains ONE real word (like "gem"), if the rest is nonsense, it's STILL gibberish.
 - GENRE CHECK: If an entity does NOT clearly belong to the "${genre}" genre, DISQUALIFY that player: they lose, take 40 damage, deal 0 counter-damage, and the description should be humorously dismissive.
 - NSFW / INAPPROPRIATE CONTENT: If an entity contains sexual, violent, hateful, or otherwise inappropriate content, IMMEDIATELY DISQUALIFY that player: they lose, take 40 damage, deal 0 counter-damage, and the description must say their submission was inappropriate and removed. Set player1Emoji to "🔞" for that player. NEVER describe the inappropriate content in the description — just say it was inappropriate.
 - TIES: If both entities are equally matched (same power level, identical, or neither clearly beats the other), set winner to "tie", damage to 0, and counterDamage to 0. Example: cat vs cat is a tie.
