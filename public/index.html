@@ -5,10 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Prompt Clash</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js">
-  </script>
-  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js">
-  </script>
   <style>
     * {
       box-sizing: border-box;
@@ -186,14 +182,13 @@
       <div class="bg-[#1a1a3e] p-8 rounded-2xl shadow-2xl w-full max-w-md border border-indigo-800/30">
         <h2 class="text-2xl font-bold text-center mb-6 text-indigo-300">Enter the Arena</h2>
         <div id="auth-error" class="text-red-400 text-sm mb-3 text-center hidden"></div>
-        <input id="auth-email" type="email" placeholder="Email" autocomplete="email" class="w-full p-3 mb-3 rounded-lg bg-[#0f0f23] border border-indigo-800/50 text-white glow-border outline-none">
-        <input id="auth-password" type="password" placeholder="Password" autocomplete="current-password" class="w-full p-3 mb-3 rounded-lg bg-[#0f0f23] border border-indigo-800/50 text-white glow-border outline-none">
-        <input id="auth-username" type="text" placeholder="Username (for registration)" autocomplete="off" class="w-full p-3 mb-4 rounded-lg bg-[#0f0f23] border border-indigo-800/50 text-white glow-border outline-none">
+        <input id="auth-username-field" type="text" placeholder="Username" autocomplete="username" class="w-full p-3 mb-3 rounded-lg bg-[#0f0f23] border border-indigo-800/50 text-white glow-border outline-none">
+        <input id="auth-password" type="password" placeholder="Password" autocomplete="current-password" class="w-full p-3 mb-4 rounded-lg bg-[#0f0f23] border border-indigo-800/50 text-white glow-border outline-none">
         <div class="flex gap-3">
           <button onclick="login()" class="flex-1 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 font-semibold transition">Login</button>
           <button onclick="register()" class="flex-1 py-3 rounded-lg bg-emerald-600 hover:bg-emerald-500 font-semibold transition">Register</button>
         </div>
-        <div class="mt-4 text-center text-xs text-indigo-400/60">Sign in with Firebase to battle</div>
+        <div class="mt-4 text-center text-xs text-indigo-400/60">Sign in to battle</div>
       </div>
     </div>
 
@@ -364,26 +359,11 @@
 
   <script>
     // ============================================================
-    // FIREBASE CONFIG — REPLACE WITH YOUR FIREBASE PROJECT VALUES
+    // JWT AUTH STATE
     // ============================================================
-    const firebaseConfig = {
-      apiKey: "YOUR_API_KEY",
-      authDomain: "YOUR_PROJECT.firebaseapp.com",
-      projectId: "YOUR_PROJECT_ID",
-      storageBucket: "YOUR_PROJECT.appspot.com",
-      messagingSenderId: "YOUR_SENDER_ID",
-      appId: "YOUR_APP_ID"
-    };
-
-    firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
-
-    // ============================================================
-    // STATE
-    // ============================================================
-    let currentUser = null;
+    let currentToken = localStorage.getItem('prompt_clash_token') || null;
     let currentProfile = null;
-    let playerSide = null; // 'p1' or 'p2'
+    let playerSide = null;
     let roomCode = null;
     let pollingInterval = null;
     let queuePollInterval = null;
@@ -402,9 +382,7 @@
       if (el) el.classList.add('active');
     }
 
-    function getToken() {
-      return currentUser ? currentUser.getIdToken() : Promise.resolve(null);
-    }
+    function getToken() { return currentToken; }
 
     function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
@@ -421,71 +399,85 @@
     // ============================================================
     // AUTH
     // ============================================================
-    auth.onAuthStateChanged(async (user) => {
-      if (user) {
-        currentUser = user;
-        const token = await getToken();
-        try {
-          const res = await fetch('/api/profile', {
-            headers: { Authorization: `Bearer ${token}` }
-          });
-          if (res.ok) {
-            currentProfile = await res.json();
-          } else {
-            // First login — need to register
-            currentProfile = {
-              username: 'Player',
-              elo: 1000,
-              gamesPlayed: 0,
-              gamesWon: 0
-            };
-          }
-        } catch {
-          currentProfile = { username: 'Player', elo: 1000, gamesPlayed: 0, gamesWon: 0 };
-        }
-        document.getElementById('nav-username').textContent = currentProfile.username || 'Player';
-        document.getElementById('nav-username').classList.remove('hidden');
-        document.getElementById('btn-logout').classList.remove('hidden');
-        showScreen('lobby');
-        renderLobby();
-      } else {
-        currentUser = null;
-        currentProfile = null;
+    async function initAuth() {
+      if (!currentToken) {
         document.getElementById('nav-username').classList.add('hidden');
         document.getElementById('btn-logout').classList.add('hidden');
-        stopAllPolling();
+        showScreen('auth');
+        return;
+      }
+      try {
+        const res = await fetch('/api/profile', {
+          headers: { Authorization: `Bearer ${currentToken}` }
+        });
+        if (res.ok) {
+          currentProfile = await res.json();
+          document.getElementById('nav-username').textContent = currentProfile.username || 'Player';
+          document.getElementById('nav-username').classList.remove('hidden');
+          document.getElementById('btn-logout').classList.remove('hidden');
+          showScreen('lobby');
+          renderLobby();
+        } else {
+          localStorage.removeItem('prompt_clash_token');
+          currentToken = null;
+          document.getElementById('nav-username').classList.add('hidden');
+          document.getElementById('btn-logout').classList.add('hidden');
+          showScreen('auth');
+        }
+      } catch {
         showScreen('auth');
       }
-    });
+    }
 
     async function login() {
-      const email = document.getElementById('auth-email').value;
+      const username = document.getElementById('auth-username-field').value.trim();
       const password = document.getElementById('auth-password').value;
+      if (!username || !password) return showAuthError('Enter username and password');
       hideAuthError();
       try {
-        await auth.signInWithEmailAndPassword(email, password);
+        const res = await fetch('/api/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Login failed');
+        currentToken = data.token;
+        localStorage.setItem('prompt_clash_token', currentToken);
+        initAuth();
       } catch (e) { showAuthError(e.message); }
     }
 
     async function register() {
-      const email = document.getElementById('auth-email').value;
+      const username = document.getElementById('auth-username-field').value.trim();
       const password = document.getElementById('auth-password').value;
-      const username = document.getElementById('auth-username').value.trim();
       if (!username) return showAuthError('Username is required');
+      if (username.length < 2) return showAuthError('Username must be at least 2 characters');
+      if (password.length < 4) return showAuthError('Password must be at least 4 characters');
       hideAuthError();
       try {
-        const cred = await auth.createUserWithEmailAndPassword(email, password);
-        const token = await cred.user.getIdToken();
         const res = await fetch('/api/register', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ idToken: token, username })
+          body: JSON.stringify({ username, password })
         });
-        if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Registration failed'); }
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Registration failed');
+        currentToken = data.token;
+        localStorage.setItem('prompt_clash_token', currentToken);
+        initAuth();
       } catch (e) { showAuthError(e.message); }
     }
 
-    function logout() { auth.signOut(); }
+    function logout() {
+      localStorage.removeItem('prompt_clash_token');
+      currentToken = null;
+      currentProfile = null;
+      document.getElementById('nav-username').classList.add('hidden');
+      document.getElementById('btn-logout').classList.add('hidden');
+      stopAllPolling();
+      showScreen('auth');
+    }
 
     function showAuthError(msg) {
       const el = document.getElementById('auth-error');
@@ -678,7 +670,7 @@
     // GAME STATE HANDLER
     // ============================================================
     async function pollGameState() {
-      if (!roomCode || !currentUser) return;
+      if (!roomCode || !currentToken) return;
       const token = await getToken();
       if (!token) return;
       try {
@@ -1074,7 +1066,7 @@
     // ============================================================
     // INIT
     // ============================================================
-    renderLobby();
+    initAuth();
   </script>
 </body>
 </html>

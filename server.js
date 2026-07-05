@@ -3,6 +3,10 @@ const cors = require('cors');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const admin = require('firebase-admin');
 const { v4: uuidv4 } = require('uuid');
+const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
+
+const JWT_SECRET = process.env.JWT_SECRET || 'prompt-clash-dev-secret-key-change-in-production';
 
 // --- Firebase Admin Init ---
 const firebaseCred = {
@@ -45,9 +49,12 @@ const ELO_K = 48;
 function verifyToken(req) {
   const authHeader = req.headers.authorization;
   if (!authHeader || !authHeader.startsWith('Bearer ')) return null;
-  return admin.auth()
-    ? admin.auth().verifyIdToken(authHeader.split(' ')[1]).catch(() => null)
-    : Promise.resolve(null);
+  try {
+    const decoded = jwt.verify(authHeader.split(' ')[1], JWT_SECRET);
+    return decoded;
+  } catch {
+    return null;
+  }
 }
 
 function generateRoomCode() {
@@ -376,34 +383,63 @@ async function updateEloAfterGame(room, winner, loser, winnerUserId) {
 
 // --- Auth: Register ---
 app.post('/api/register', async (req, res) => {
-  const { idToken, username } = req.body;
-  if (!idToken || !username) return res.status(400).json({ error: 'Missing fields' });
-  if (!admin.auth()) return res.status(500).json({ error: 'Firebase not configured' });
+  const { username, password } = req.body;
+  if (!username || !password) return res.status(400).json({ error: 'Username and password required' });
+  if (username.length < 2) return res.status(400).json({ error: 'Username must be at least 2 characters' });
+  if (password.length < 4) return res.status(400).json({ error: 'Password must be at least 4 characters' });
   try {
-    const decoded = await admin.auth().verifyIdToken(idToken);
-    await db.collection('users').doc(decoded.uid).set({
+    // Check for existing username
+    const existing = await db.collection('users').where('username', '==', username).get();
+    if (!existing.empty) return res.status(409).json({ error: 'Username already taken' });
+    const uid = uuidv4();
+    const hash = bcrypt.hashSync(password, 10);
+    await db.collection('users').doc(uid).set({
       username,
+      password: hash,
       elo: 1000,
       gamesPlayed: 0,
       gamesWon: 0,
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
     });
-    res.json({ success: true });
+    const token = jwt.sign({ uid, username }, JWT_SECRET, { expiresIn: '7d' });
+    res.json({ token, uid, username });
   } catch (e) {
-    res.status(400).json({ error: 'Invalid token' });
+    console.error('Register error:', e);
+    res.status(500).json({ error: 'Registration failed' });
+  }
+});
+
+// --- Auth: Login ---
+app.post('/api/login', async (req, res) => {
+  const { username, password } = req.body;
+  if (!username || !password) return res.status(400).json({ error: 'Username and password required' });
+  try {
+    const snapshot = await db.collection('users').where('username', '==', username).get();
+    if (snapshot.empty) return res.status(401).json({ error: 'Invalid username or password' });
+    const doc = snapshot.docs[0];
+    const data = doc.data();
+    if (!bcrypt.compareSync(password, data.password)) {
+      return res.status(401).json({ error: 'Invalid username or password' });
+    }
+    const token = jwt.sign({ uid: doc.id, username: data.username }, JWT_SECRET, { expiresIn: '7d' });
+    res.json({ token, uid: doc.id, username: data.username });
+  } catch (e) {
+    console.error('Login error:', e);
+    res.status(500).json({ error: 'Login failed' });
   }
 });
 
 // --- Auth: Get Profile ---
 app.get('/api/profile', async (req, res) => {
-  const user = await verifyToken(req);
+  const user = verifyToken(req);
   if (!user) return res.status(401).json({ error: 'Unauthorized' });
   if (!db) return res.json({ uid: user.uid, username: 'Player', elo: 1000, gamesPlayed: 0, gamesWon: 0 });
   const doc = await db.collection('users').doc(user.uid).get();
   if (!doc.exists) {
     return res.json({ uid: user.uid, username: 'Player', elo: 1000, gamesPlayed: 0, gamesWon: 0 });
   }
-  res.json({ uid: user.uid, ...doc.data(), avatarColor: avatarColor(doc.data().username) });
+  const { password, ...safe } = doc.data();
+  res.json({ uid: user.uid, ...safe, avatarColor: avatarColor(safe.username) });
 });
 
 // --- Queue: Join ---

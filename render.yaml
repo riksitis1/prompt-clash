@@ -17,5 +17,7 @@ services:
         sync: false
       - key: FIREBASE_CLIENT_EMAIL
         sync: false
+      - key: JWT_SECRET
+        sync: false
       - key: PORT
         value: "3000"
