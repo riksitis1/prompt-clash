@@ -35,7 +35,7 @@ function saveUsers(users) {
 const genAI = process.env.GEMINI_API_KEY
   ? new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
   : null;
-const model = genAI ? genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' }) : null;
+const model = genAI ? genAI.getGenerativeModel({ model: 'gemini-2.0-flash' }) : null;
 
 // ============================================================
 // Express Setup
@@ -267,7 +267,11 @@ STRICT RULES:
     if (model) {
       const result = await model.generateContent(prompt);
       const text = result.response.text();
-      const cleaned = text.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
+      // Extract JSON from anywhere in the response
+      const jsonMatch = text.replace(/```(?:json)?\s*/gi, '').replace(/```/g, '').trim();
+      const start = jsonMatch.indexOf('{');
+      const end = jsonMatch.lastIndexOf('}');
+      const cleaned = start >= 0 && end > start ? jsonMatch.slice(start, end + 1) : jsonMatch;
       data = JSON.parse(cleaned);
     } else {
       data = { winner: ['player1', 'player2', 'tie'][Math.floor(Math.random() * 3)], player1Emoji: '⚔️', player2Emoji: '⚔️', damage: 20, counterDamage: 10, description: 'With no AI judge available, the battle is decided by fate.' };
