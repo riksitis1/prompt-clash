@@ -1,0 +1,1080 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Concept Battle</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js">
+  </script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js">
+  </script>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: #0f0f23;
+      color: #e0e0e0;
+      overflow-x: hidden;
+    }
+    .screen {
+      display: none;
+    }
+    .screen.active {
+      display: flex;
+    }
+    .hp-bar {
+      transition: width 0.6s ease-out;
+    }
+    @keyframes shake {
+      0%,
+      100% {
+        transform: translateX(0);
+      }
+      10%,
+      30%,
+      50%,
+      70%,
+      90% {
+        transform: translateX(-6px);
+      }
+      20%,
+      40%,
+      60%,
+      80% {
+        transform: translateX(6px);
+      }
+    }
+    @keyframes cloudPulse {
+      0% {
+        transform: scale(0.2);
+        opacity: 0;
+        border-radius: 50%;
+      }
+      40% {
+        transform: scale(1.3);
+        opacity: 0.9;
+        border-radius: 20%;
+      }
+      100% {
+        transform: scale(0);
+        opacity: 0;
+        border-radius: 50%;
+      }
+    }
+    @keyframes dashAttack {
+      0% {
+        transform: translateX(0) scale(1);
+      }
+      30% {
+        transform: translateX(var(--dash-target)) scale(2);
+      }
+      60% {
+        transform: translateX(var(--dash-target)) scale(2.4);
+      }
+      100% {
+        transform: translateX(0) scale(1);
+      }
+    }
+    @keyframes flashRed {
+      0% {
+        background-color: transparent;
+      }
+      25% {
+        background-color: rgba(255, 0, 0, 0.7);
+      }
+      100% {
+        background-color: transparent;
+      }
+    }
+    .shake {
+      animation: shake 0.5s ease-in-out;
+    }
+    .arena-emoji {
+      font-size: 3.5rem;
+      position: absolute;
+      transition: all 0.5s ease-in-out;
+      z-index: 5;
+    }
+    .fight-cloud-inner {
+      animation: cloudPulse 0.9s ease-out forwards;
+      width: 120px;
+      height: 120px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 3rem;
+    }
+    .dash-attack {
+      animation: dashAttack 0.9s ease-in-out forwards;
+    }
+    .flash-overlay {
+      animation: flashRed 0.5s ease-out;
+    }
+    .letter-avatar {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.75rem;
+      font-weight: 700;
+      color: white;
+      flex-shrink: 0;
+      user-select: none;
+    }
+    .log-container {
+      max-height: 120px;
+      overflow-y: auto;
+      scroll-behavior: smooth;
+    }
+    .log-container::-webkit-scrollbar {
+      width: 6px;
+    }
+    .log-container::-webkit-scrollbar-track {
+      background: #1a1a3e;
+      border-radius: 3px;
+    }
+    .log-container::-webkit-scrollbar-thumb {
+      background: #4a4a8a;
+      border-radius: 3px;
+    }
+    .countdown {
+      font-variant-numeric: tabular-nums;
+    }
+    .glow-border:focus {
+      box-shadow: 0 0 15px rgba(99, 102, 241, 0.5);
+      outline: none;
+    }
+    .entity-hidden {
+      filter: blur(6px);
+      user-select: none;
+    }
+    .entity-revealed {
+      filter: blur(0);
+    }
+    .hp-danger {
+      background: linear-gradient(to right, #ef4444, #dc2626) !important;
+    }
+    .hp-warning {
+      background: linear-gradient(to right, #f59e0b, #d97706) !important;
+    }
+    .hp-safe {
+      background: linear-gradient(to right, #22c55e, #10b981) !important;
+    }
+    .slide-enter {
+      transition: all 0.4s ease-in-out;
+    }
+  </style>
+</head>
+<body>
+  <div id="app" class="min-h-screen flex flex-col">
+    <!-- NAV -->
+    <nav class="px-6 py-3 flex items-center justify-between bg-[#1a1a3e] border-b border-indigo-800/50 shrink-0">
+      <h1 class="text-xl font-bold text-indigo-300">⚔️ Concept Battle</h1>
+      <div id="nav-auth" class="flex items-center gap-3 text-sm">
+        <span id="nav-username" class="text-indigo-200 hidden"></span>
+        <button id="btn-logout" class="text-red-400 hover:text-red-300 hidden text-sm" onclick="logout()">Logout</button>
+      </div>
+    </nav>
+
+    <!-- SCREEN: AUTH -->
+    <div id="screen-auth" class="screen active flex-1 flex items-center justify-center p-4">
+      <div class="bg-[#1a1a3e] p-8 rounded-2xl shadow-2xl w-full max-w-md border border-indigo-800/30">
+        <h2 class="text-2xl font-bold text-center mb-6 text-indigo-300">Enter the Arena</h2>
+        <div id="auth-error" class="text-red-400 text-sm mb-3 text-center hidden"></div>
+        <input id="auth-email" type="email" placeholder="Email" autocomplete="email" class="w-full p-3 mb-3 rounded-lg bg-[#0f0f23] border border-indigo-800/50 text-white glow-border outline-none">
+        <input id="auth-password" type="password" placeholder="Password" autocomplete="current-password" class="w-full p-3 mb-3 rounded-lg bg-[#0f0f23] border border-indigo-800/50 text-white glow-border outline-none">
+        <input id="auth-username" type="text" placeholder="Username (for registration)" autocomplete="off" class="w-full p-3 mb-4 rounded-lg bg-[#0f0f23] border border-indigo-800/50 text-white glow-border outline-none">
+        <div class="flex gap-3">
+          <button onclick="login()" class="flex-1 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 font-semibold transition">Login</button>
+          <button onclick="register()" class="flex-1 py-3 rounded-lg bg-emerald-600 hover:bg-emerald-500 font-semibold transition">Register</button>
+        </div>
+        <div class="mt-4 text-center text-xs text-indigo-400/60">Sign in with Firebase to battle</div>
+      </div>
+    </div>
+
+    <!-- SCREEN: LOBBY -->
+    <div id="screen-lobby" class="screen flex-1 flex flex-col items-center justify-center p-4 gap-6">
+      <div id="profile-card" class="flex items-center gap-5 bg-[#1a1a3e] p-6 rounded-2xl border border-indigo-800/30 w-full max-w-md">
+        <div id="lobby-avatar" class="letter-avatar text-2xl w-16 h-16">?</div>
+        <div>
+          <div id="lobby-username" class="text-xl font-bold"></div>
+          <div class="text-indigo-300 text-sm"><span id="lobby-elo">1000</span> Elo</div>
+          <div class="text-xs text-gray-500"><span id="lobby-wins">0</span>W / <span id="lobby-games">0</span>G</div>
+        </div>
+      </div>
+      <div class="flex gap-4">
+        <button onclick="findPublicMatch()" class="px-8 py-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-bold text-lg transition shadow-lg">Find Public Match</button>
+        <button onclick="createPrivateRoom()" class="px-8 py-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 font-bold text-lg transition shadow-lg">Private Room</button>
+      </div>
+      <div id="private-room-code" class="text-2xl font-mono text-indigo-300 hidden bg-[#1a1a3e] px-6 py-3 rounded-xl border border-indigo-800/30"></div>
+      <div class="flex gap-2 items-center">
+        <input id="join-code-input" type="text" placeholder="Room Code" maxlength="4" class="w-32 p-3 rounded-lg bg-[#1a1a3e] border border-indigo-800/50 text-white text-center uppercase glow-border outline-none">
+        <button onclick="joinPrivateRoom()" class="px-5 py-3 rounded-lg bg-purple-600 hover:bg-purple-500 font-semibold transition">Join</button>
+      </div>
+    </div>
+
+    <!-- SCREEN: MATCHING -->
+    <div id="screen-matching" class="screen flex-1 flex flex-col items-center justify-center gap-6">
+      <div class="text-5xl animate-pulse">🔍</div>
+      <div class="text-xl text-indigo-300">Searching for opponent...</div>
+      <div class="text-sm text-gray-500">Queue: <span id="queue-position">1</span></div>
+      <button onclick="leaveQueue()" class="px-6 py-2 rounded-lg bg-red-700 hover:bg-red-600 transition">Cancel</button>
+    </div>
+
+    <!-- SCREEN: WAITING ROOM -->
+    <div id="screen-waiting-room" class="screen flex-1 flex flex-col items-center justify-center gap-6">
+      <div class="text-5xl">⏳</div>
+      <div class="text-xl text-indigo-300">Room: <span id="waiting-room-code" class="font-mono font-bold"></span></div>
+      <div id="waiting-players" class="text-gray-400">Waiting for opponent...</div>
+      <div class="flex gap-4 mt-4">
+        <div class="flex flex-col items-center gap-2">
+          <div id="waiting-p1-avatar" class="letter-avatar text-xl w-14 h-14 text-sm">?</div>
+          <div id="waiting-p1-name" class="text-sm text-indigo-200">You</div>
+        </div>
+        <div class="flex items-center text-2xl text-gray-600">VS</div>
+        <div class="flex flex-col items-center gap-2">
+          <div id="waiting-p2-avatar" class="letter-avatar text-xl w-14 h-14 text-sm bg-gray-700">?</div>
+          <div id="waiting-p2-name" class="text-sm text-gray-400">Waiting...</div>
+        </div>
+      </div>
+      <button onclick="leaveRoom()" class="px-6 py-2 rounded-lg bg-red-700 hover:bg-red-600 transition text-sm">Leave Room</button>
+    </div>
+
+    <!-- SCREEN: GENRE SELECT (P1) -->
+    <div id="screen-genre" class="screen flex-1 flex flex-col items-center justify-center gap-6">
+      <div class="text-2xl text-indigo-300 font-bold">Choose the Battle Genre</div>
+      <div class="text-gray-500 text-sm">You are the host — pick the category for this round</div>
+      <select id="genre-dropdown" class="w-72 p-4 rounded-xl bg-[#1a1a3e] border border-indigo-800/50 text-white text-lg text-center glow-border outline-none cursor-pointer">
+        <option value="Animals">🦁 Animals</option>
+        <option value="Machines">⚙️ Machines</option>
+        <option value="Mythical Creatures">🐉 Mythical Creatures</option>
+        <option value="Elements">🔥 Elements</option>
+        <option value="Cosmic">🌌 Cosmic</option>
+      </select>
+      <button onclick="lockGenre()" class="px-12 py-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-bold text-xl transition shadow-lg">Lock In Genre</button>
+    </div>
+
+    <!-- SCREEN: WAITING GENRE (P2) -->
+    <div id="screen-waiting-genre" class="screen flex-1 flex flex-col items-center justify-center gap-4">
+      <div class="text-5xl animate-pulse">🎲</div>
+      <div class="text-xl text-indigo-300">Host is choosing the genre...</div>
+    </div>
+
+    <!-- SCREEN: BATTLE -->
+    <div id="screen-battle" class="screen flex-1 flex flex-col p-3 gap-3 min-h-0">
+      <!-- Top Bar -->
+      <div class="flex items-center justify-between text-sm shrink-0">
+        <span class="text-indigo-300 font-bold">⚔️ <span id="battle-genre">???</span></span>
+        <span class="text-gray-500">Round <span id="battle-round">1</span></span>
+        <span id="battle-countdown" class="font-mono text-indigo-200 countdown">30s</span>
+      </div>
+
+      <!-- Main Arena Row -->
+      <div class="flex-1 flex items-stretch gap-3 min-h-0">
+        <!-- P1 Side -->
+        <div class="flex-1 flex flex-col items-center justify-between bg-[#1a1a3e]/60 rounded-2xl p-4 border border-indigo-800/20 min-w-0">
+          <div class="flex flex-col items-center gap-1 shrink-0">
+            <div id="battle-p1-avatar" class="letter-avatar w-14 h-14 text-xl">?</div>
+            <div id="battle-p1-name" class="font-bold text-sm truncate max-w-full"></div>
+            <div id="battle-p1-elo" class="text-xs text-indigo-300"></div>
+          </div>
+          <div class="w-full flex-1 flex flex-col justify-center gap-2">
+            <div id="battle-p1-input-area" class="text-center">
+              <input id="battle-p1-input" type="text" placeholder="Your entity..." class="w-full p-3 rounded-lg bg-[#0f0f23] border border-indigo-800/50 text-white glow-border outline-none text-center text-sm">
+              <button id="battle-p1-submit" onclick="submitEntity()" class="mt-2 w-full py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 font-semibold transition text-sm">Submit</button>
+            </div>
+            <div id="battle-p1-ready" class="hidden flex-col items-center gap-1">
+              <div class="text-emerald-400 font-bold text-lg">✅ Ready!</div>
+              <div id="battle-p1-entity-blur" class="entity-hidden text-base text-gray-400"></div>
+            </div>
+          </div>
+          <div class="w-full shrink-0">
+            <div class="flex items-center gap-2">
+              <span class="text-xs text-gray-500 w-10">HP</span>
+              <div class="flex-1 h-4 rounded-full bg-gray-700 overflow-hidden">
+                <div id="battle-p1-hp" class="hp-bar h-full hp-safe" style="width:100%"></div>
+              </div>
+              <span id="battle-p1-hp-text" class="text-sm font-bold w-10 text-right">100</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Center Arena -->
+        <div id="arena-center" class="relative w-40 flex flex-col items-center justify-center bg-[#1a1a3e]/40 rounded-2xl border border-indigo-800/10 overflow-hidden shrink-0">
+          <div id="arena-emoji-p1" class="arena-emoji" style="left:10px">❓</div>
+          <div id="arena-emoji-p2" class="arena-emoji" style="right:10px">❓</div>
+          <div id="fight-cloud" class="absolute inset-0 flex items-center justify-center pointer-events-none z-10 hidden bg-black/30 rounded-2xl">
+            <div class="fight-cloud-inner bg-gradient-to-br from-yellow-400 via-orange-400 to-red-500 rounded-full">💥</div>
+          </div>
+          <div id="arena-flash-overlay" class="absolute inset-0 pointer-events-none z-20 hidden rounded-2xl"></div>
+          <div id="arena-versus-text" class="text-2xl font-bold text-indigo-500/40">VS</div>
+        </div>
+
+        <!-- P2 Side -->
+        <div class="flex-1 flex flex-col items-center justify-between bg-[#1a1a3e]/60 rounded-2xl p-4 border border-indigo-800/20 min-w-0">
+          <div class="flex flex-col items-center gap-1 shrink-0">
+            <div id="battle-p2-avatar" class="letter-avatar w-14 h-14 text-xl">?</div>
+            <div id="battle-p2-name" class="font-bold text-sm truncate max-w-full"></div>
+            <div id="battle-p2-elo" class="text-xs text-indigo-300"></div>
+          </div>
+          <div class="w-full flex-1 flex flex-col justify-center gap-2">
+            <div id="battle-p2-input-area" class="text-center">
+              <input id="battle-p2-input" type="text" placeholder="Your entity..." class="w-full p-3 rounded-lg bg-[#0f0f23] border border-indigo-800/50 text-white glow-border outline-none text-center text-sm" disabled>
+              <button id="battle-p2-submit" onclick="submitEntity()" class="mt-2 w-full py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 font-semibold transition text-sm hidden">Submit</button>
+            </div>
+            <div id="battle-p2-ready" class="hidden flex-col items-center gap-1">
+              <div class="text-emerald-400 font-bold text-lg">✅ Ready!</div>
+              <div id="battle-p2-entity-blur" class="entity-hidden text-base text-gray-400"></div>
+            </div>
+          </div>
+          <div class="w-full shrink-0">
+            <div class="flex items-center gap-2">
+              <span class="text-xs text-gray-500 w-10">HP</span>
+              <div class="flex-1 h-4 rounded-full bg-gray-700 overflow-hidden">
+                <div id="battle-p2-hp" class="hp-bar h-full hp-safe" style="width:100%"></div>
+              </div>
+              <span id="battle-p2-hp-text" class="text-sm font-bold w-10 text-right">100</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Battle Log -->
+      <div class="bg-[#1a1a3e]/60 rounded-xl p-3 border border-indigo-800/20 shrink-0">
+        <div class="text-xs text-indigo-400 mb-1">📜 Battle Log</div>
+        <div id="battle-log" class="log-container text-sm space-y-1">
+          <div class="text-gray-500 italic">Awaiting first battle...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SCREEN: GAME OVER -->
+    <div id="screen-gameover" class="screen flex-1 flex flex-col items-center justify-center gap-6 p-4">
+      <div id="gameover-icon" class="text-7xl">🏆</div>
+      <div id="gameover-title" class="text-3xl font-bold text-indigo-300"></div>
+      <div id="gameover-details" class="text-gray-400 text-center max-w-md"></div>
+      <button onclick="backToLobby()" class="px-10 py-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-bold text-lg transition shadow-lg">Back to Lobby</button>
+    </div>
+  </div>
+
+  <script>
+    // ============================================================
+    // FIREBASE CONFIG — REPLACE WITH YOUR FIREBASE PROJECT VALUES
+    // ============================================================
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_PROJECT.firebaseapp.com",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_PROJECT.appspot.com",
+      messagingSenderId: "YOUR_SENDER_ID",
+      appId: "YOUR_APP_ID"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+
+    // ============================================================
+    // STATE
+    // ============================================================
+    let currentUser = null;
+    let currentProfile = null;
+    let playerSide = null; // 'p1' or 'p2'
+    let roomCode = null;
+    let pollingInterval = null;
+    let queuePollInterval = null;
+    let countdownInterval = null;
+    let isAnimating = false;
+    let lastPhase = null;
+    let lastLogLen = 0;
+    let turnStartTime = 0;
+
+    // ============================================================
+    // UTILITY
+    // ============================================================
+    function showScreen(id) {
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      const el = document.getElementById(id);
+      if (el) el.classList.add('active');
+    }
+
+    function getToken() {
+      return currentUser ? currentUser.getIdToken() : Promise.resolve(null);
+    }
+
+    function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+    function hashCode(str) {
+      let h = 0;
+      for (let i = 0; i < str.length; i++) h = str.charCodeAt(i) + ((h << 5) - h);
+      return Math.abs(h);
+    }
+
+    function avatarStyle(username) {
+      return `hsl(${hashCode(username || '') % 360}, 60%, 50%)`;
+    }
+
+    // ============================================================
+    // AUTH
+    // ============================================================
+    auth.onAuthStateChanged(async (user) => {
+      if (user) {
+        currentUser = user;
+        const token = await getToken();
+        try {
+          const res = await fetch('/api/profile', {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          if (res.ok) {
+            currentProfile = await res.json();
+          } else {
+            // First login — need to register
+            currentProfile = {
+              username: 'Player',
+              elo: 1000,
+              gamesPlayed: 0,
+              gamesWon: 0
+            };
+          }
+        } catch {
+          currentProfile = { username: 'Player', elo: 1000, gamesPlayed: 0, gamesWon: 0 };
+        }
+        document.getElementById('nav-username').textContent = currentProfile.username || 'Player';
+        document.getElementById('nav-username').classList.remove('hidden');
+        document.getElementById('btn-logout').classList.remove('hidden');
+        showScreen('lobby');
+        renderLobby();
+      } else {
+        currentUser = null;
+        currentProfile = null;
+        document.getElementById('nav-username').classList.add('hidden');
+        document.getElementById('btn-logout').classList.add('hidden');
+        stopAllPolling();
+        showScreen('auth');
+      }
+    });
+
+    async function login() {
+      const email = document.getElementById('auth-email').value;
+      const password = document.getElementById('auth-password').value;
+      hideAuthError();
+      try {
+        await auth.signInWithEmailAndPassword(email, password);
+      } catch (e) { showAuthError(e.message); }
+    }
+
+    async function register() {
+      const email = document.getElementById('auth-email').value;
+      const password = document.getElementById('auth-password').value;
+      const username = document.getElementById('auth-username').value.trim();
+      if (!username) return showAuthError('Username is required');
+      hideAuthError();
+      try {
+        const cred = await auth.createUserWithEmailAndPassword(email, password);
+        const token = await cred.user.getIdToken();
+        const res = await fetch('/api/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ idToken: token, username })
+        });
+        if (!res.ok) { const d = await res.json(); throw new Error(d.error || 'Registration failed'); }
+      } catch (e) { showAuthError(e.message); }
+    }
+
+    function logout() { auth.signOut(); }
+
+    function showAuthError(msg) {
+      const el = document.getElementById('auth-error');
+      el.textContent = msg;
+      el.classList.remove('hidden');
+    }
+
+    function hideAuthError() {
+      document.getElementById('auth-error').classList.add('hidden');
+    }
+
+    // ============================================================
+    // LOBBY
+    // ============================================================
+    function renderLobby() {
+      if (!currentProfile) return;
+      const p = currentProfile;
+      const letter = (p.username || '?').charAt(0).toUpperCase();
+      const av = document.getElementById('lobby-avatar');
+      av.textContent = letter;
+      av.style.backgroundColor = avatarStyle(p.username);
+      document.getElementById('lobby-username').textContent = p.username || 'Player';
+      document.getElementById('lobby-elo').textContent = p.elo || 1000;
+      document.getElementById('lobby-wins').textContent = p.gamesWon || 0;
+      document.getElementById('lobby-games').textContent = p.gamesPlayed || 0;
+      document.getElementById('private-room-code').classList.add('hidden');
+    }
+
+    // ============================================================
+    // MATCHMAKING
+    // ============================================================
+    async function findPublicMatch() {
+      const token = await getToken();
+      if (!token) return;
+      const res = await fetch('/api/join-queue', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (data.status === 'matched') {
+        roomCode = data.roomCode;
+        showScreen('waiting-room');
+        document.getElementById('waiting-room-code').textContent = roomCode;
+        updateWaitingRoom();
+        startPolling();
+      } else if (data.status === 'queued') {
+        showScreen('matching');
+        startQueuePolling();
+      }
+    }
+
+    function startQueuePolling() {
+      stopQueuePolling();
+      queuePollInterval = setInterval(async () => {
+        const token = await getToken();
+        if (!token) return;
+        const res = await fetch('/api/queue-status', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data.status === 'queued') {
+          document.getElementById('queue-position').textContent = data.position || 1;
+        } else if (data.status === 'matched') {
+          stopQueuePolling();
+          roomCode = data.roomCode;
+          showScreen('waiting-room');
+          document.getElementById('waiting-room-code').textContent = roomCode;
+          updateWaitingRoom();
+          startPolling();
+        } else {
+          // No longer in queue and not matched — back to lobby
+          stopQueuePolling();
+          showScreen('lobby');
+        }
+      }, 2000);
+    }
+
+    function stopQueuePolling() {
+      if (queuePollInterval) { clearInterval(queuePollInterval);
+        queuePollInterval = null; }
+    }
+
+    async function leaveQueue() {
+      const token = await getToken();
+      if (!token) return;
+      await fetch('/api/leave-queue', { method: 'POST', headers: { Authorization: `Bearer ${token}` } });
+      stopQueuePolling();
+      showScreen('lobby');
+    }
+
+    // ============================================================
+    // PRIVATE ROOMS
+    // ============================================================
+    async function createPrivateRoom() {
+      const token = await getToken();
+      if (!token) return;
+      const res = await fetch('/api/create-room', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      roomCode = data.roomCode;
+      document.getElementById('private-room-code').textContent = 'Room: ' + roomCode;
+      document.getElementById('private-room-code').classList.remove('hidden');
+      showScreen('waiting-room');
+      document.getElementById('waiting-room-code').textContent = roomCode;
+      updateWaitingRoom();
+      startPolling();
+    }
+
+    async function joinPrivateRoom() {
+      const code = document.getElementById('join-code-input').value.toUpperCase().trim();
+      if (code.length !== 4) return;
+      const token = await getToken();
+      if (!token) return;
+      const res = await fetch('/api/join-room', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code })
+      });
+      if (!res.ok) {
+        const d = await res.json();
+        alert(d.error || 'Failed to join room');
+        return;
+      }
+      roomCode = code;
+      showScreen('waiting-room');
+      document.getElementById('waiting-room-code').textContent = roomCode;
+      updateWaitingRoom();
+      startPolling();
+    }
+
+    async function updateWaitingRoom() {
+      const token = await getToken();
+      if (!token || !roomCode) return;
+      try {
+        const res = await fetch(`/api/game-state/${roomCode}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (!res.ok) return;
+        const state = await res.json();
+        if (state.me) {
+          const el = document.getElementById('waiting-p1-avatar');
+          el.textContent = (state.me.username || '?').charAt(0).toUpperCase();
+          el.style.backgroundColor = state.me.avatarColor || '#6366f1';
+          document.getElementById('waiting-p1-name').textContent = state.me.username || 'You';
+        }
+        if (state.opponent) {
+          const el = document.getElementById('waiting-p2-avatar');
+          el.textContent = (state.opponent.username || '?').charAt(0).toUpperCase();
+          el.style.backgroundColor = state.opponent.avatarColor || '#6366f1';
+          document.getElementById('waiting-p2-name').textContent = state.opponent.username || 'Opponent';
+          document.getElementById('waiting-players').textContent = 'Opponent joined!';
+        }
+      } catch {}
+    }
+
+    function leaveRoom() {
+      roomCode = null;
+      lastPhase = null;
+      lastLogLen = 0;
+      stopAllPolling();
+      showScreen('lobby');
+    }
+
+    // ============================================================
+    // POLLING
+    // ============================================================
+    function startPolling() {
+      stopPolling();
+      pollingInterval = setInterval(pollGameState, 2000);
+      pollGameState();
+    }
+
+    function stopPolling() {
+      if (pollingInterval) { clearInterval(pollingInterval);
+        pollingInterval = null; }
+      if (countdownInterval) { clearInterval(countdownInterval);
+        countdownInterval = null; }
+    }
+
+    function stopAllPolling() {
+      stopPolling();
+      stopQueuePolling();
+    }
+
+    // ============================================================
+    // GAME STATE HANDLER
+    // ============================================================
+    async function pollGameState() {
+      if (!roomCode || !currentUser) return;
+      const token = await getToken();
+      if (!token) return;
+      try {
+        const res = await fetch(`/api/game-state/${roomCode}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (!res.ok) {
+          stopAllPolling();
+          showScreen('lobby');
+          return;
+        }
+        const state = await res.json();
+        handleState(state);
+      } catch {}
+    }
+
+    function handleState(state) {
+      if (!state) return;
+      const phase = state.phase;
+
+      // Update waiting room if opponent joined
+      if (phase === 'genre_select' || phase === 'submitting' || phase === 'resolving' ||
+        phase === 'round_result' || phase === 'game_over') {
+        if (state.opponent && document.getElementById('screen-waiting-room').classList.contains(
+            'active')) {
+          updateWaitingRoom();
+        }
+      }
+
+      // Phase transitions
+      if (phase !== lastPhase) {
+        lastPhase = phase;
+        onPhaseChange(state);
+      }
+
+      // If in battle, update UI
+      if (phase === 'submitting' || phase === 'resolving' || phase === 'round_result') {
+        updateBattleUI(state);
+      }
+
+      // Countdown
+      if (phase === 'submitting') {
+        updateCountdown(state);
+      } else {
+        if (countdownInterval) { clearInterval(countdownInterval);
+          countdownInterval = null; }
+        document.getElementById('battle-countdown').textContent = '--';
+      }
+
+      // Detect new battle log entry — trigger animation
+      if (state.battleLog && state.battleLog.length > lastLogLen) {
+        lastLogLen = state.battleLog.length;
+        if (phase === 'round_result' || phase === 'game_over') {
+          const entry = state.battleLog[state.battleLog.length - 1];
+          if (!isAnimating) playBattleAnimation(state, entry);
+        }
+      }
+    }
+
+    // ============================================================
+    // PHASE TRANSITIONS
+    // ============================================================
+    function onPhaseChange(state) {
+      switch (state.phase) {
+        case 'genre_select':
+          if (state.me && state.me.side === 'p1') {
+            showScreen('genre');
+          } else {
+            showScreen('waiting-genre');
+          }
+          break;
+        case 'submitting':
+          showScreen('battle');
+          document.getElementById('battle-round').textContent = (state.currentRound || 0) + 1;
+          document.getElementById('battle-genre').textContent = state.genre || '???';
+          turnStartTime = state.turnStartTime || Date.now();
+          break;
+        case 'round_result':
+          // stay on battle — animation will play
+          break;
+        case 'game_over':
+          showGameOver(state);
+          break;
+        default:
+          // waiting phase — already on waiting-room screen
+          break;
+      }
+    }
+
+    // ============================================================
+    // COUNTDOWN
+    // ============================================================
+    function updateCountdown(state) {
+      if (!state.turnStartTime) return;
+      const elapsed = (Date.now() - state.turnStartTime) / 1000;
+      const remaining = Math.max(0, Math.ceil(30 - elapsed));
+      document.getElementById('battle-countdown').textContent = remaining + 's';
+      if (remaining <= 5) {
+        document.getElementById('battle-countdown').classList.add('text-red-400');
+      } else {
+        document.getElementById('battle-countdown').classList.remove('text-red-400');
+      }
+    }
+
+    // ============================================================
+    // BATTLE UI UPDATE
+    // ============================================================
+    function updateBattleUI(state) {
+      const me = state.me;
+      const opp = state.opponent;
+
+      if (me) updatePlayerPanel(me.side, me, state);
+      if (opp) updatePlayerPanel(opp.side, opp, state);
+
+      // Arena emojis from last log
+      const log = state.battleLog;
+      if (log && log.length > 0) {
+        const last = log[log.length - 1];
+        document.getElementById('arena-emoji-p1').textContent = last.player1Emoji || '❓';
+        document.getElementById('arena-emoji-p2').textContent = last.player2Emoji || '❓';
+      }
+
+      renderLog(state.battleLog);
+    }
+
+    function updatePlayerPanel(side, data, state) {
+      const prefix = side;
+      const avatarEl = document.getElementById(`battle-${prefix}-avatar`);
+      const nameEl = document.getElementById(`battle-${prefix}-name`);
+      const eloEl = document.getElementById(`battle-${prefix}-elo`);
+      const hpBar = document.getElementById(`battle-${prefix}-hp`);
+      const hpText = document.getElementById(`battle-${prefix}-hp-text`);
+      const inputArea = document.getElementById(`battle-${prefix}-input-area`);
+      const readyEl = document.getElementById(`battle-${prefix}-ready`);
+      const input = document.getElementById(`battle-${prefix}-input`);
+      const submitBtn = document.getElementById(`battle-${prefix}-submit`);
+      const blurEl = document.getElementById(`battle-${prefix}-entity-blur`);
+
+      // Avatar
+      const uname = data?.username || '?';
+      avatarEl.textContent = uname.charAt(0).toUpperCase();
+      avatarEl.style.backgroundColor = data?.avatarColor || avatarStyle(uname);
+      nameEl.textContent = uname;
+      eloEl.textContent = (data?.elo || 1000) + ' Elo';
+
+      // HP
+      const hp = data?.hp ?? 100;
+      hpBar.style.width = Math.max(0, hp) + '%';
+      hpText.textContent = Math.max(0, hp);
+      hpBar.className = 'hp-bar h-full ' + (hp <= 30 ? 'hp-danger' : hp <= 60 ? 'hp-warning' : 'hp-safe');
+
+      const isMe = state.me?.side === side;
+
+      if (isMe) {
+        if (state.phase === 'submitting' && !data?.ready) {
+          inputArea.classList.remove('hidden');
+          readyEl.classList.add('hidden');
+          input.disabled = false;
+          input.value = '';
+          submitBtn.disabled = false;
+          submitBtn.classList.remove('hidden');
+        } else if (state.phase === 'submitting' && data?.ready) {
+          inputArea.classList.add('hidden');
+          readyEl.classList.remove('hidden');
+          blurEl.textContent = '(submitted)';
+          blurEl.className = 'entity-hidden text-base text-gray-400';
+        } else {
+          inputArea.classList.add('hidden');
+          readyEl.classList.remove('hidden');
+          // Show revealed entity from log
+          const log = state.battleLog;
+          if (log && log.length > 0) {
+            const last = log[log.length - 1];
+            const entity = side === 'p1' ? last.p1Entity : last.p2Entity;
+            blurEl.textContent = entity || '(submitted)';
+            blurEl.className = 'entity-revealed text-base text-indigo-200';
+          }
+        }
+      } else {
+        // Opponent view
+        if (state.phase === 'submitting' && data?.ready) {
+          inputArea.classList.add('hidden');
+          readyEl.classList.remove('hidden');
+          blurEl.textContent = '(submitted)';
+          blurEl.className = 'entity-hidden text-base text-gray-400';
+        } else if (state.phase === 'submitting') {
+          inputArea.classList.remove('hidden');
+          readyEl.classList.add('hidden');
+          input.disabled = true;
+          input.value = '';
+          input.placeholder = 'Waiting...';
+          submitBtn.classList.add('hidden');
+        } else {
+          inputArea.classList.add('hidden');
+          readyEl.classList.remove('hidden');
+          const log = state.battleLog;
+          if (log && log.length > 0) {
+            const last = log[log.length - 1];
+            const entity = side === 'p1' ? last.p1Entity : last.p2Entity;
+            blurEl.textContent = entity || '(submitted)';
+            blurEl.className = 'entity-revealed text-base text-indigo-200';
+          }
+        }
+      }
+    }
+
+    function renderLog(log) {
+      const el = document.getElementById('battle-log');
+      if (!log || log.length === 0) {
+        el.innerHTML = '<div class="text-gray-500 italic">Awaiting first battle...</div>';
+        return;
+      }
+      el.innerHTML = log.map((entry, i) =>
+        `<div class="text-sm py-0.5 ${i === log.length - 1 ? 'text-indigo-200' : 'text-gray-400'}">
+          <span class="text-indigo-400 font-medium">R${entry.round}:</span>
+          ${entry.description}
+        </div>`
+      ).join('');
+      el.scrollTop = el.scrollHeight;
+    }
+
+    // ============================================================
+    // SUBMIT ENTITY
+    // ============================================================
+    async function submitEntity() {
+      const side = playerSide;
+      if (!side) return;
+      const input = document.getElementById(`battle-${side}-input`);
+      const entity = input.value.trim();
+      if (!entity) return;
+      const token = await getToken();
+      if (!token) return;
+      const res = await fetch('/api/submit-entity', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: roomCode, entity })
+      });
+      if (res.ok) {
+        input.disabled = true;
+        document.getElementById(`battle-${side}-submit`).disabled = true;
+      } else {
+        const d = await res.json();
+        alert(d.error || 'Failed to submit');
+      }
+    }
+
+    // ============================================================
+    // LOCK GENRE
+    // ============================================================
+    async function lockGenre() {
+      const genre = document.getElementById('genre-dropdown').value;
+      const token = await getToken();
+      if (!token) return;
+      await fetch('/api/lock-genre', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: roomCode, genre })
+      });
+    }
+
+    // ============================================================
+    // BATTLE ANIMATION (5 Phases)
+    // ============================================================
+    async function playBattleAnimation(state, entry) {
+      isAnimating = true;
+      const arena = document.getElementById('arena-center');
+      const emojiP1 = document.getElementById('arena-emoji-p1');
+      const emojiP2 = document.getElementById('arena-emoji-p2');
+      const cloud = document.getElementById('fight-cloud');
+      const flash = document.getElementById('arena-flash-overlay');
+      const vsText = document.getElementById('arena-versus-text');
+
+      // Reset
+      vsText.classList.add('hidden');
+      emojiP1.style.transition = 'all 0.5s ease-in-out';
+      emojiP2.style.transition = 'all 0.5s ease-in-out';
+      emojiP1.style.transform = 'translateX(0)';
+      emojiP2.style.transform = 'translateX(0)';
+      emojiP1.style.opacity = '1';
+      emojiP2.style.opacity = '1';
+      emojiP1.textContent = entry.player1Emoji || '❓';
+      emojiP2.textContent = entry.player2Emoji || '❓';
+      emojiP1.classList.remove('hidden');
+      emojiP2.classList.remove('hidden');
+      emojiP1.className = 'arena-emoji';
+      emojiP2.className = 'arena-emoji';
+      emojiP1.style.left = '10px';
+      emojiP2.style.right = '10px';
+      cloud.classList.add('hidden');
+      flash.classList.add('hidden');
+      flash.classList.remove('flash-overlay');
+      arena.classList.remove('shake');
+
+      // Force reflow
+      void arena.offsetWidth;
+
+      // Phase 1 — Approach (0–800ms): both slide to center
+      emojiP1.style.transform = 'translateX(50px)';
+      emojiP2.style.transform = 'translateX(-50px)';
+      await sleep(800);
+
+      // Phase 2 — Clash (800–1700ms): fight cloud
+      cloud.classList.remove('hidden');
+      emojiP1.classList.add('hidden');
+      emojiP2.classList.add('hidden');
+      await sleep(900);
+
+      // Phase 3 — Reveal (1700–2500ms): cloud clears, winner visible
+      cloud.classList.add('hidden');
+      const p1Wins = entry.winner === 'player1';
+      const winnerEmoji = p1Wins ? emojiP1 : emojiP2;
+      const loserEmoji = p1Wins ? emojiP2 : emojiP1;
+      winnerEmoji.classList.remove('hidden');
+      loserEmoji.classList.add('hidden');
+      winnerEmoji.style.transform = 'translateX(0)';
+      winnerEmoji.style.left = p1Wins ? '10px' : '';
+      winnerEmoji.style.right = p1Wins ? '' : '10px';
+      await sleep(800);
+
+      // Phase 4 — Impact (2500–3500ms): dash and shake
+      const isP1 = state.me?.side === 'p1';
+      const dashDir = p1Wins ? '130px' : '-130px';
+      winnerEmoji.style.setProperty('--dash-target', dashDir);
+      winnerEmoji.classList.add('dash-attack');
+      arena.classList.add('shake');
+      flash.classList.remove('hidden');
+      flash.classList.add('flash-overlay');
+
+      // Update losing player's HP bar
+      const loserSide = p1Wins ? 'p2' : 'p1';
+      const loserHp = p1Wins ? state.opponent?.hp : state.me?.hp || 0;
+      const hpBar = document.getElementById(`battle-${loserSide}-hp`);
+      hpBar.style.width = Math.max(0, loserHp) + '%';
+
+      await sleep(900);
+
+      // Cleanup phase 4
+      arena.classList.remove('shake');
+      flash.classList.add('hidden');
+      winnerEmoji.classList.remove('dash-attack');
+      winnerEmoji.style.transform = 'translateX(0)';
+
+      await sleep(400);
+
+      // Phase 5 — Reveal entities in log area
+      const log = document.getElementById('battle-log');
+      renderLog(state.battleLog);
+      log.scrollTop = log.scrollHeight;
+
+      // Show entities
+      const p1Blur = document.getElementById('battle-p1-entity-blur');
+      const p2Blur = document.getElementById('battle-p2-entity-blur');
+      if (entry.p1Entity) {
+        p1Blur.textContent = entry.p1Entity;
+        p1Blur.className = 'entity-revealed text-base text-indigo-200';
+      }
+      if (entry.p2Entity) {
+        p2Blur.textContent = entry.p2Entity;
+        p2Blur.className = 'entity-revealed text-base text-indigo-200';
+      }
+
+      // Show VS text again if back to submitting
+      vsText.classList.remove('hidden');
+
+      isAnimating = false;
+    }
+
+    // ============================================================
+    // GAME OVER
+    // ============================================================
+    function showGameOver(state) {
+      stopAllPolling();
+      showScreen('screen-gameover');
+      const me = state.me;
+      const opp = state.opponent;
+      const iWon = me && opp && me.hp > 0 && opp.hp <= 0;
+      document.getElementById('gameover-icon').textContent = iWon ? '🏆' : '💀';
+      document.getElementById('gameover-title').textContent = iWon ? 'Victory!' : 'Defeated';
+      document.getElementById('gameover-details').innerHTML =
+        `${me?.username || 'You'}: ${me?.hp || 0} HP &nbsp;|&nbsp; ${opp?.username || 'Opponent'}: ${opp?.hp || 0} HP`;
+    }
+
+    function backToLobby() {
+      roomCode = null;
+      lastPhase = null;
+      lastLogLen = 0;
+      isAnimating = false;
+      playerSide = null;
+      showScreen('lobby');
+      renderLobby();
+    }
+
+    // ============================================================
+    // INIT
+    // ============================================================
+    renderLobby();
+  </script>
+</body>
+</html>
