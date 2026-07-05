@@ -129,17 +129,20 @@ function calculateElo(ratingA, ratingB, winA) {
   };
 }
 
-function checkMatchmaking() {
-  if (matchQueue.length < 2) return null;
-  const p1 = matchQueue.shift();
-  const p2 = matchQueue.shift();
-  const room = createRoom('public', { userId: p1.userId, username: p1.username, elo: p1.elo });
-  room.p2 = { userId: p2.userId, username: p2.username, elo: p2.elo, hp: 100, entity: null, ready: false, entityHidden: true, emoji: null };
-  matchedMap[p1.userId] = room.code;
-  matchedMap[p2.userId] = room.code;
-  room.phase = 'submitting';
-  startRoundTimer(room);
-  return room;
+function checkMatchmaking(userId) {
+  let matched = null;
+  while (matchQueue.length >= 2) {
+    const p1 = matchQueue.shift();
+    const p2 = matchQueue.shift();
+    const room = createRoom('public', { userId: p1.userId, username: p1.username, elo: p1.elo });
+    room.p2 = { userId: p2.userId, username: p2.username, elo: p2.elo, hp: 100, entity: null, ready: false, entityHidden: true, emoji: null };
+    matchedMap[p1.userId] = room.code;
+    matchedMap[p2.userId] = room.code;
+    room.phase = 'submitting';
+    startRoundTimer(room);
+    if (p1.userId === userId || p2.userId === userId) matched = room;
+  }
+  return matched;
 }
 
 // ============================================================
@@ -398,7 +401,7 @@ app.post('/api/join-queue', async (req, res) => {
   const { username, elo } = await getUserData(user.uid);
   if (matchQueue.find(u => u.userId === user.uid)) return res.json({ status: 'already_in_queue' });
   matchQueue.push({ userId: user.uid, username, elo, joinedAt: Date.now() });
-  const room = checkMatchmaking();
+  const room = checkMatchmaking(user.uid);
   if (room) return res.json({ status: 'matched', roomCode: room.code });
   res.json({ status: 'queued' });
 });

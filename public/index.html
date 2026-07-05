@@ -91,6 +91,19 @@
       transition: all 0.5s ease-in-out;
       z-index: 5;
     }
+    .arena-entity-label {
+      position: absolute;
+      bottom: 8px;
+      font-size: 0.7rem;
+      color: #c7d2fe;
+      text-align: center;
+      width: calc(50% - 20px);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      z-index: 6;
+      pointer-events: none;
+    }
     .fight-cloud-inner {
       animation: cloudPulse 0.9s ease-out forwards;
       width: 160px;
@@ -300,6 +313,8 @@
         <div id="arena-center" class="relative flex-[1.8] flex flex-col items-center justify-center bg-[#1a1a3e]/40 rounded-2xl border border-indigo-800/10 overflow-hidden shrink-0 min-w-[200px]">
           <div id="arena-emoji-p1" class="arena-emoji" style="left:10px">❓</div>
           <div id="arena-emoji-p2" class="arena-emoji" style="right:10px">❓</div>
+          <div id="arena-entity-p1" class="arena-entity-label" style="left:10px"> </div>
+          <div id="arena-entity-p2" class="arena-entity-label" style="right:10px"> </div>
           <div id="fight-cloud" class="absolute inset-0 flex items-center justify-center pointer-events-none z-10 hidden bg-black/30 rounded-2xl">
             <div class="fight-cloud-inner bg-gradient-to-br from-yellow-400 via-orange-400 to-red-500 rounded-full">💥</div>
           </div>
@@ -765,6 +780,11 @@
           document.getElementById('battle-round').textContent = (state.currentRound || 0) + 1;
           document.getElementById('battle-genre').textContent = state.genre || '???';
           turnStartTime = state.turnStartTime || Date.now();
+          // Reset own input field for new round
+          {
+            const side = state.me?.side;
+            if (side) document.getElementById(`battle-${side}-input`).value = '';
+          }
           break;
         case 'round_result':
           // stay on battle — animation will play
@@ -803,12 +823,21 @@
       if (me) updatePlayerPanel(me.side, me, state);
       if (opp) updatePlayerPanel(opp.side, opp, state);
 
-      // Arena emojis from last log
+      // Arena emojis & entity names from last log
       const log = state.battleLog;
       if (log && log.length > 0) {
         const last = log[log.length - 1];
         document.getElementById('arena-emoji-p1').textContent = last.player1Emoji || '❓';
         document.getElementById('arena-emoji-p2').textContent = last.player2Emoji || '❓';
+        document.getElementById('arena-entity-p1').textContent = last.p1Entity || '';
+        document.getElementById('arena-entity-p2').textContent = last.p2Entity || '';
+      } else if (state.phase === 'submitting') {
+        // Show opponent's chosen entity once both have submitted
+        const opp = state.opponent;
+        const me = state.me;
+        if (opp?.ready && me?.ready) {
+          // Names will be populated when battle log arrives
+        }
       }
 
       renderLog(state.battleLog);
@@ -847,7 +876,6 @@
           inputArea.classList.remove('hidden');
           readyEl.classList.add('hidden');
           input.disabled = false;
-          input.value = '';
           submitBtn.disabled = false;
           submitBtn.classList.remove('hidden');
         } else if (state.phase === 'submitting' && data?.ready) {
