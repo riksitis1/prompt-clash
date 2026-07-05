@@ -49,8 +49,6 @@ app.use(express.static('public'));
 // In-Memory State (rooms are ephemeral — not saved to disk)
 // ============================================================
 const rooms = new Map();
-const matchQueue = [];
-const matchedMap = {};
 const GENRES = ['Animals', 'Machines', 'Mythical Creatures', 'Elements', 'Cosmic'];
 const ROUND_TIMEOUT = 30000;
 const AUTO_ADVANCE_DELAY = 6000;
@@ -75,8 +73,8 @@ function createRoom(type, p1Data) {
   const code = generateRoomCode();
   const room = {
     code, type,
-    phase: type === 'private' ? 'genre_select' : 'submitting',
-    genre: type === 'public' ? GENRES[Math.floor(Math.random() * GENRES.length)] : null,
+    phase: type === 'private' ? 'genre_select' : 'waiting',
+    genre: null,
     p1: { ...p1Data, hp: 100, entity: null, ready: false, entityHidden: true, emoji: null },
     p2: null,
     currentRound: 0,
@@ -129,20 +127,13 @@ function calculateElo(ratingA, ratingB, winA) {
   };
 }
 
-function checkMatchmaking(userId) {
-  let matched = null;
-  while (matchQueue.length >= 2) {
-    const p1 = matchQueue.shift();
-    const p2 = matchQueue.shift();
-    const room = createRoom('public', { userId: p1.userId, username: p1.username, elo: p1.elo });
-    room.p2 = { userId: p2.userId, username: p2.username, elo: p2.elo, hp: 100, entity: null, ready: false, entityHidden: true, emoji: null };
-    matchedMap[p1.userId] = room.code;
-    matchedMap[p2.userId] = room.code;
-    room.phase = 'submitting';
-    startRoundTimer(room);
-    if (p1.userId === userId || p2.userId === userId) matched = room;
+function findOpenPublicRoom() {
+  for (const room of rooms.values()) {
+    if (room.type === 'public' && room.phase === 'waiting' && !room.p2) {
+      return room;
+    }
   }
-  return matched;
+  return null;
 }
 
 // ============================================================
@@ -394,40 +385,29 @@ app.get('/api/profile', async (req, res) => {
   }
 });
 
-// --- Queue: Join ---
-app.post('/api/join-queue', async (req, res) => {
+// --- Public Match: Find ---
+app.post('/api/find-match', async (req, res) => {
   const user = verifyToken(req);
   if (!user) return res.status(401).json({ error: 'Unauthorized' });
   const { username, elo } = await getUserData(user.uid);
-  if (matchQueue.find(u => u.userId === user.uid)) return res.json({ status: 'already_in_queue' });
-  matchQueue.push({ userId: user.uid, username, elo, joinedAt: Date.now() });
-  const room = checkMatchmaking(user.uid);
-  if (room) return res.json({ status: 'matched', roomCode: room.code });
-  res.json({ status: 'queued' });
-});
-
-// --- Queue: Leave ---
-app.post('/api/leave-queue', (req, res) => {
-  const user = verifyToken(req);
-  if (!user) return res.status(401).json({ error: 'Unauthorized' });
-  const idx = matchQueue.findIndex(u => u.userId === user.uid);
-  if (idx >= 0) matchQueue.splice(idx, 1);
-  delete matchedMap[user.uid];
-  res.json({ success: true });
-});
-
-// --- Queue: Status ---
-app.get('/api/queue-status', (req, res) => {
-  const user = verifyToken(req);
-  if (!user) return res.status(401).json({ error: 'Unauthorized' });
-  if (matchedMap[user.uid]) {
-    const code = matchedMap[user.uid];
-    delete matchedMap[user.uid];
-    return res.json({ status: 'matched', roomCode: code });
+  // Check if already in a room
+  for (const room of rooms.values()) {
+    if (room.p1?.userId === user.uid || room.p2?.userId === user.uid) {
+      return res.json({ roomCode: room.code });
+    }
   }
-  const idx = matchQueue.findIndex(u => u.userId === user.uid);
-  if (idx >= 0) return res.json({ status: 'queued', position: idx + 1 });
-  res.json({ status: 'none' });
+  // Find an open room, or create one
+  let room = findOpenPublicRoom();
+  if (room) {
+    room.p2 = { userId: user.uid, username, elo, hp: 100, entity: null, ready: false, entityHidden: true, emoji: null };
+    room.genre = GENRES[Math.floor(Math.random() * GENRES.length)];
+    room.phase = 'submitting';
+    room.turnStartTime = Date.now();
+    startRoundTimer(room);
+  } else {
+    room = createRoom('public', { userId: user.uid, username, elo });
+  }
+  res.json({ roomCode: room.code });
 });
 
 // --- Room: Create Private ---
@@ -455,15 +435,24 @@ app.post('/api/join-room', async (req, res) => {
   res.json({ success: true });
 });
 
+// --- Public Match: Cancel ---
+app.post('/api/cancel-match', (req, res) => {
+  const user = verifyToken(req);
+  if (!user) return res.status(401).json({ error: 'Unauthorized' });
+  for (const [code, room] of rooms.entries()) {
+    if (room.p1?.userId === user.uid && !room.p2) {
+      clearTimeout(room.roundTimer); clearTimeout(room.advanceTimer);
+      rooms.delete(code);
+      return res.json({ success: true });
+    }
+  }
+  res.json({ success: true });
+});
+
 // --- Room: My Active ---
 app.get('/api/my-active-room', (req, res) => {
   const user = verifyToken(req);
   if (!user) return res.status(401).json({ error: 'Unauthorized' });
-  if (matchedMap[user.uid]) {
-    const code = matchedMap[user.uid];
-    delete matchedMap[user.uid];
-    return res.json({ code });
-  }
   for (const room of rooms.values()) {
     if (room.p1?.userId === user.uid || room.p2?.userId === user.uid) {
       return res.json({ code: room.code });

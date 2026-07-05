@@ -260,7 +260,7 @@
       <div class="text-6xl animate-pulse" style="filter: drop-shadow(0 0 20px rgba(99,102,241,0.3));">🔍</div>
       <div class="text-xl text-indigo-300 font-medium">Searching for opponent...</div>
       <div class="text-sm text-gray-500">Queue: <span id="queue-position" class="text-indigo-300 font-mono">1</span></div>
-      <button onclick="leaveQueue()" class="px-6 py-2 rounded-xl btn-danger text-sm">Cancel</button>
+      <button onclick="cancelMatch()" class="px-6 py-2 rounded-xl btn-danger text-sm">Cancel</button>
     </div>
 
     <!-- SCREEN: WAITING ROOM -->
@@ -410,7 +410,6 @@
     let playerSide = null;
     let roomCode = null;
     let pollingInterval = null;
-    let queuePollInterval = null;
     let countdownInterval = null;
     let isAnimating = false;
     let lastPhase = null;
@@ -577,60 +576,40 @@
     async function findPublicMatch() {
       const token = await getToken();
       if (!token) return;
-      const res = await fetch('/api/join-queue', {
+      const res = await fetch('/api/find-match', {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` }
       });
       const data = await res.json();
-      if (data.status === 'matched') {
-        roomCode = data.roomCode;
-        showScreen('screen-waiting-room');
-        document.getElementById('waiting-room-code').textContent = roomCode;
-        updateWaitingRoom();
-        startPolling();
-      } else if (data.status === 'queued') {
-        showScreen('screen-matching');
-        startQueuePolling();
-      }
-    }
-
-    function startQueuePolling() {
-      stopQueuePolling();
-      queuePollInterval = setInterval(async () => {
-        const token = await getToken();
-        if (!token) return;
-        const res = await fetch('/api/queue-status', {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        if (!res.ok) return;
-        const data = await res.json();
-        if (data.status === 'queued') {
-          document.getElementById('queue-position').textContent = data.position || 1;
-        } else if (data.status === 'matched') {
-          stopQueuePolling();
-          roomCode = data.roomCode;
-          showScreen('screen-waiting-room');
-          document.getElementById('waiting-room-code').textContent = roomCode;
-          updateWaitingRoom();
+      if (!data.roomCode) return;
+      roomCode = data.roomCode;
+      // Check if already matched (we joined an existing room)
+      const stateRes = await fetch(`/api/game-state/${roomCode}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (stateRes.ok) {
+        const state = await stateRes.json();
+        if (state.phase !== 'waiting') {
+          // Already has opponent — go straight to battle
           startPolling();
-        } else {
-          // No longer in queue and not matched — back to lobby
-          stopQueuePolling();
-          showScreen('screen-lobby');
+          return;
         }
-      }, 2000);
+      }
+      // We're hosting — show waiting room
+      showScreen('screen-waiting-room');
+      document.getElementById('waiting-room-code').textContent = roomCode;
+      document.getElementById('waiting-players').textContent = 'Waiting for opponent...';
+      updateWaitingRoom();
+      startPolling();
     }
 
-    function stopQueuePolling() {
-      if (queuePollInterval) { clearInterval(queuePollInterval);
-        queuePollInterval = null; }
-    }
-
-    async function leaveQueue() {
+    async function cancelMatch() {
       const token = await getToken();
       if (!token) return;
-      await fetch('/api/leave-queue', { method: 'POST', headers: { Authorization: `Bearer ${token}` } });
-      stopQueuePolling();
+      await fetch('/api/cancel-match', { method: 'POST', headers: { Authorization: `Bearer ${token}` } });
+      stopAllPolling();
+      roomCode = null;
+      lastPhase = null;
       showScreen('screen-lobby');
     }
 
@@ -720,15 +699,13 @@
     }
 
     function stopPolling() {
-      if (pollingInterval) { clearInterval(pollingInterval);
-        pollingInterval = null; }
-      if (countdownInterval) { clearInterval(countdownInterval);
-        countdownInterval = null; }
+      if (pollingInterval) { clearInterval(pollingInterval); pollingInterval = null; }
+      if (countdownInterval) { clearInterval(countdownInterval); countdownInterval = null; }
     }
 
     function stopAllPolling() {
-      stopPolling();
-      stopQueuePolling();
+      if (pollingInterval) { clearInterval(pollingInterval); pollingInterval = null; }
+      if (countdownInterval) { clearInterval(countdownInterval); countdownInterval = null; }
     }
 
     // ============================================================
