@@ -400,7 +400,7 @@
       if (!currentToken) {
         document.getElementById('nav-username').classList.add('hidden');
         document.getElementById('btn-logout').classList.add('hidden');
-        showScreen('auth');
+        showScreen('screen-auth');
         return;
       }
       try {
@@ -412,17 +412,17 @@
           document.getElementById('nav-username').textContent = currentProfile.username || 'Player';
           document.getElementById('nav-username').classList.remove('hidden');
           document.getElementById('btn-logout').classList.remove('hidden');
-          showScreen('lobby');
+          showScreen('screen-lobby');
           renderLobby();
         } else {
           localStorage.removeItem('prompt_clash_token');
           currentToken = null;
           document.getElementById('nav-username').classList.add('hidden');
           document.getElementById('btn-logout').classList.add('hidden');
-          showScreen('auth');
+          showScreen('screen-auth');
         }
       } catch {
-        showScreen('auth');
+        showScreen('screen-auth');
       }
     }
 
@@ -473,7 +473,7 @@
       document.getElementById('nav-username').classList.add('hidden');
       document.getElementById('btn-logout').classList.add('hidden');
       stopAllPolling();
-      showScreen('auth');
+      showScreen('screen-auth');
     }
 
     function showAuthError(msg) {
@@ -516,12 +516,12 @@
       const data = await res.json();
       if (data.status === 'matched') {
         roomCode = data.roomCode;
-        showScreen('waiting-room');
+        showScreen('screen-waiting-room');
         document.getElementById('waiting-room-code').textContent = roomCode;
         updateWaitingRoom();
         startPolling();
       } else if (data.status === 'queued') {
-        showScreen('matching');
+        showScreen('screen-matching');
         startQueuePolling();
       }
     }
@@ -541,14 +541,14 @@
         } else if (data.status === 'matched') {
           stopQueuePolling();
           roomCode = data.roomCode;
-          showScreen('waiting-room');
+          showScreen('screen-waiting-room');
           document.getElementById('waiting-room-code').textContent = roomCode;
           updateWaitingRoom();
           startPolling();
         } else {
           // No longer in queue and not matched — back to lobby
           stopQueuePolling();
-          showScreen('lobby');
+          showScreen('screen-lobby');
         }
       }, 2000);
     }
@@ -563,7 +563,7 @@
       if (!token) return;
       await fetch('/api/leave-queue', { method: 'POST', headers: { Authorization: `Bearer ${token}` } });
       stopQueuePolling();
-      showScreen('lobby');
+      showScreen('screen-lobby');
     }
 
     // ============================================================
@@ -581,7 +581,7 @@
       roomCode = data.roomCode;
       document.getElementById('private-room-code').textContent = 'Room: ' + roomCode;
       document.getElementById('private-room-code').classList.remove('hidden');
-      showScreen('waiting-room');
+      showScreen('screen-waiting-room');
       document.getElementById('waiting-room-code').textContent = roomCode;
       updateWaitingRoom();
       startPolling();
@@ -603,7 +603,7 @@
         return;
       }
       roomCode = code;
-      showScreen('waiting-room');
+      showScreen('screen-waiting-room');
       document.getElementById('waiting-room-code').textContent = roomCode;
       updateWaitingRoom();
       startPolling();
@@ -639,7 +639,7 @@
       lastPhase = null;
       lastLogLen = 0;
       stopAllPolling();
-      showScreen('lobby');
+      showScreen('screen-lobby');
     }
 
     // ============================================================
@@ -676,7 +676,7 @@
         });
         if (!res.ok) {
           stopAllPolling();
-          showScreen('lobby');
+          showScreen('screen-lobby');
           return;
         }
         const state = await res.json();
@@ -734,13 +734,13 @@
       switch (state.phase) {
         case 'genre_select':
           if (state.me && state.me.side === 'p1') {
-            showScreen('genre');
+            showScreen('screen-genre');
           } else {
-            showScreen('waiting-genre');
+            showScreen('screen-waiting-genre');
           }
           break;
         case 'submitting':
-          showScreen('battle');
+          showScreen('screen-battle');
           document.getElementById('battle-round').textContent = (state.currentRound || 0) + 1;
           document.getElementById('battle-genre').textContent = state.genre || '???';
           turnStartTime = state.turnStartTime || Date.now();
@@ -1056,7 +1056,7 @@
       lastLogLen = 0;
       isAnimating = false;
       playerSide = null;
-      showScreen('lobby');
+      showScreen('screen-lobby');
       renderLobby();
     }
 
