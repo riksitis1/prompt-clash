@@ -17,12 +17,15 @@ const USERS_FILE = path.join(DATA_DIR, 'users.json');
 if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
 if (!fs.existsSync(USERS_FILE)) fs.writeFileSync(USERS_FILE, '{}', 'utf-8');
 
+let usersCache = null;
 function loadUsers() {
-  try { return JSON.parse(fs.readFileSync(USERS_FILE, 'utf-8')); }
-  catch { return {}; }
+  if (usersCache) return usersCache;
+  try { usersCache = JSON.parse(fs.readFileSync(USERS_FILE, 'utf-8')); return usersCache; }
+  catch { usersCache = {}; return usersCache; }
 }
 
 function saveUsers(users) {
+  usersCache = users;
   fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2), 'utf-8');
 }
 

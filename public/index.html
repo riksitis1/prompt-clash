@@ -397,6 +397,9 @@
     // AUTH
     // ============================================================
     async function initAuth() {
+      const prefill = localStorage.getItem('prompt_clash_username');
+      if (prefill) document.getElementById('auth-username-field').value = prefill;
+
       if (!currentToken) {
         document.getElementById('nav-username').classList.add('hidden');
         document.getElementById('btn-logout').classList.add('hidden');
@@ -414,16 +417,32 @@
           document.getElementById('btn-logout').classList.remove('hidden');
           showScreen('screen-lobby');
           renderLobby();
-        } else {
-          localStorage.removeItem('prompt_clash_token');
-          currentToken = null;
-          document.getElementById('nav-username').classList.add('hidden');
-          document.getElementById('btn-logout').classList.add('hidden');
-          showScreen('screen-auth');
+          return;
         }
       } catch {
-        showScreen('screen-auth');
+        // Server might be cold-starting — retry after delay
       }
+      // Token invalid or server unreachable: retry once after 3s, then give up
+      try {
+        await new Promise(r => setTimeout(r, 3000));
+        const res2 = await fetch('/api/profile', {
+          headers: { Authorization: `Bearer ${currentToken}` }
+        });
+        if (res2.ok) {
+          currentProfile = await res2.json();
+          document.getElementById('nav-username').textContent = currentProfile.username || 'Player';
+          document.getElementById('nav-username').classList.remove('hidden');
+          document.getElementById('btn-logout').classList.remove('hidden');
+          showScreen('screen-lobby');
+          renderLobby();
+          return;
+        }
+      } catch {}
+      localStorage.removeItem('prompt_clash_token');
+      currentToken = null;
+      document.getElementById('nav-username').classList.add('hidden');
+      document.getElementById('btn-logout').classList.add('hidden');
+      showScreen('screen-auth');
     }
 
     async function login() {
@@ -441,6 +460,7 @@
         if (!res.ok) throw new Error(data.error || 'Login failed');
         currentToken = data.token;
         localStorage.setItem('prompt_clash_token', currentToken);
+        localStorage.setItem('prompt_clash_username', username);
         initAuth();
       } catch (e) { showAuthError(e.message); }
     }
@@ -462,6 +482,7 @@
         if (!res.ok) throw new Error(data.error || 'Registration failed');
         currentToken = data.token;
         localStorage.setItem('prompt_clash_token', currentToken);
+        localStorage.setItem('prompt_clash_username', username);
         initAuth();
       } catch (e) { showAuthError(e.message); }
     }
