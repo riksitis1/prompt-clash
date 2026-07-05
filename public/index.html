@@ -737,6 +737,7 @@
     function handleState(state) {
       if (!state) return;
       const phase = state.phase;
+      if (state.me) playerSide = state.me.side;
 
       // Update waiting room if opponent joined
       if (phase === 'genre_select' || phase === 'submitting' || phase === 'resolving' ||
@@ -968,7 +969,12 @@
       btn.disabled = true;
       btn.textContent = 'Submitting...';
       const token = await getToken();
-      if (!token) return;
+      if (!token) {
+        input.disabled = false;
+        btn.disabled = false;
+        btn.textContent = 'Submit';
+        return;
+      }
       const res = await fetch('/api/submit-entity', {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
