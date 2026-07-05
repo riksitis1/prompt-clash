@@ -142,7 +142,7 @@ function findOpenPublicRoom() {
 
 function findUserByUsername(username) {
   const users = loadUsers();
-  return Object.entries(users).find(([, u]) => u.username === username);
+  return Object.entries(users).find(([, u]) => u.username.toLowerCase() === username.toLowerCase());
 }
 
 function getUserById(uid) {
@@ -392,13 +392,14 @@ app.post('/api/register', (req, res) => {
   const { username, password } = req.body;
   if (!username || typeof username !== 'string' || username.trim().length < 2) return res.status(400).json({ error: 'Username must be at least 2 characters' });
   if (!password || typeof password !== 'string' || password.length < 4) return res.status(400).json({ error: 'Password must be at least 4 characters' });
+  const cleanUsername = username.trim();
   try {
-    if (findUserByUsername(username)) return res.status(409).json({ error: 'Username already taken' });
+    if (findUserByUsername(cleanUsername)) return res.status(409).json({ error: 'Username already taken' });
     const uid = uuidv4();
     const hash = bcrypt.hashSync(password, 10);
-    createUser(uid, username, hash);
-    const token = jwt.sign({ uid, username }, JWT_SECRET, { expiresIn: '7d' });
-    res.json({ token, uid, username });
+    createUser(uid, cleanUsername, hash);
+    const token = jwt.sign({ uid, username: cleanUsername }, JWT_SECRET, { expiresIn: '7d' });
+    res.json({ token, uid, username: cleanUsername });
   } catch (e) {
     console.error('Register error:', e);
     res.status(500).json({ error: 'Registration failed' });
@@ -408,9 +409,10 @@ app.post('/api/register', (req, res) => {
 // --- Auth: Login ---
 app.post('/api/login', (req, res) => {
   const { username, password } = req.body;
-  if (!username || !password) return res.status(400).json({ error: 'Username and password required' });
+  if (!username || !username.trim() || !password) return res.status(400).json({ error: 'Username and password required' });
   try {
-    const entry = findUserByUsername(username);
+    const cleanUsername = username.trim();
+    const entry = findUserByUsername(cleanUsername);
     if (!entry) return res.status(401).json({ error: 'Invalid username or password' });
     const [uid, userData] = entry;
     if (!bcrypt.compareSync(password, userData.password)) {
