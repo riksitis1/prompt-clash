@@ -72,20 +72,59 @@ function generateRoomCode() {
 
 function createRoom(type, p1Data) {
   const code = generateRoomCode();
+  const now = Date.now();
   const room = {
     code, type,
     phase: type === 'private' ? 'genre_select' : 'waiting',
     genre: null,
-    p1: { ...p1Data, hp: 100, entity: null, ready: false, entityHidden: true, emoji: null },
+    p1: { ...p1Data, hp: 100, entity: null, ready: false, entityHidden: true, emoji: null, lastPollTime: now },
     p2: null,
     currentRound: 0,
     battleLog: [],
     roundTimer: null, advanceTimer: null,
     lastEntityP1: null, lastEntityP2: null,
     turnStartTime: Date.now(),
+    forfeitStarted: null, // timestamp when forfeit countdown began
+    forfeitSide: null,    // which side is being forfeited
   };
   rooms.set(code, room);
   return room;
+}
+
+function isInBattlePhase(room) {
+  return room && room.p2 && (room.phase === 'submitting' || room.phase === 'resolving' || room.phase === 'round_result');
+}
+
+async function forfeitPlayer(room, loserSide) {
+  if (room.phase === 'game_over') return;
+  const winnerSide = loserSide === 'p1' ? 'p2' : 'p1';
+  const winner = room[winnerSide];
+  const loser = room[loserSide];
+  // Set HP to 0 for loser, keep winner's HP
+  loser.hp = 0;
+  // Build a forfeit log entry
+  const logEntry = {
+    round: ++room.currentRound,
+    winner: winnerSide === 'p1' ? 'player1' : 'player2',
+    winnerUsername: winner.username,
+    loserUsername: loser.username,
+    player1Emoji: winnerSide === 'p1' ? '🏆' : '💀',
+    player2Emoji: winnerSide === 'p2' ? '🏆' : '💀',
+    p1Entity: room.lastEntityP1 || '',
+    p2Entity: room.lastEntityP2 || '',
+    damage: 40,
+    counterDamage: 0,
+    winnerHp: winner.hp,
+    loserHp: 0,
+    description: `${loser.username} left the battle. ${winner.username} wins by forfeit!`,
+  };
+  room.battleLog.push(logEntry);
+  room.phase = 'game_over';
+  clearTimeout(room.roundTimer);
+  clearTimeout(room.advanceTimer);
+  room.forfeitStarted = null;
+  room.forfeitSide = null;
+  await updateEloAfterGame(room, winner, loser);
 }
 
 function avatarColor(str) {
@@ -688,13 +727,20 @@ app.post('/api/join-room', async (req, res) => {
 });
 
 // --- Room: Leave (abandon any room) ---
-app.post('/api/leave-room', (req, res) => {
+app.post('/api/leave-room', async (req, res) => {
   const user = verifyToken(req);
   if (!user) return res.status(401).json({ error: 'Unauthorized' });
   for (const [code, room] of rooms.entries()) {
     if (room.p1?.userId === user.uid || room.p2?.userId === user.uid) {
-      clearTimeout(room.roundTimer); clearTimeout(room.advanceTimer);
-      rooms.delete(code);
+      // If in active battle, forfeit instead of silently deleting
+      if (isInBattlePhase(room)) {
+        const loserSide = room.p1.userId === user.uid ? 'p1' : 'p2';
+        await forfeitPlayer(room, loserSide);
+      } else {
+        clearTimeout(room.roundTimer);
+        clearTimeout(room.advanceTimer);
+        rooms.delete(code);
+      }
       return res.json({ success: true });
     }
   }
@@ -771,7 +817,7 @@ app.post('/api/submit-entity', (req, res) => {
 });
 
 // --- Game: Get State ---
-app.get('/api/game-state/:code', (req, res) => {
+app.get('/api/game-state/:code', async (req, res) => {
   const user = verifyToken(req);
   if (!user) return res.status(401).json({ error: 'Unauthorized' });
   const room = rooms.get(req.params.code?.toUpperCase());
@@ -779,6 +825,26 @@ app.get('/api/game-state/:code', (req, res) => {
   const isP1 = room.p1?.userId === user.uid;
   const isP2 = room.p2?.userId === user.uid;
   if (!isP1 && !isP2) return res.status(403).json({ error: 'Not in this room' });
+
+  // Update last poll time
+  const mySide = isP1 ? 'p1' : 'p2';
+  room[mySide].lastPollTime = Date.now();
+
+  // If in active battle, check if opponent disconnected
+  if (isInBattlePhase(room)) {
+    const oppSide = isP1 ? 'p2' : 'p1';
+    const now = Date.now();
+    const oppLastPoll = room[oppSide].lastPollTime || 0;
+
+    if (now - oppLastPoll > 20000) {
+      // Opponent has been gone >20s — they forfeit
+      await forfeitPlayer(room, oppSide);
+    } else if (now - oppLastPoll > 5000) {
+      // Opponent has been gone >5s but <20s — show a warning in the state
+      // We can add an optional field, but it's optional on the client
+    }
+  }
+
   res.json(sanitizeRoom(room, user.uid));
 });
 

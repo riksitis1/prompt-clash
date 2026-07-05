@@ -718,6 +718,34 @@
           document.getElementById('nav-username').textContent = currentProfile.username || 'Player';
           document.getElementById('nav-username').classList.remove('hidden');
           document.getElementById('btn-logout').classList.remove('hidden');
+          // Check if we have an active room (reconnect after disconnect)
+          try {
+            const roomRes = await fetch('/api/my-active-room', {
+              headers: { Authorization: `Bearer ${currentToken}` }
+            });
+            if (roomRes.ok) {
+              const roomData = await roomRes.json();
+              if (roomData.code) {
+                roomCode = roomData.code;
+                const stateRes = await fetch(`/api/game-state/${roomCode}`, {
+                  headers: { Authorization: `Bearer ${currentToken}` }
+                });
+                if (stateRes.ok) {
+                  const state = await stateRes.json();
+                  if (state.phase !== 'waiting' && state.phase !== 'genre_select') {
+                    playerSide = state.me?.side;
+                    lastPhase = state.phase;
+                    lastLogLen = state.battleLog?.length || 0;
+                    onPhaseChange(state);
+                    updateBattleUI(state);
+                    updateCountdown(state);
+                    startPolling();
+                    return;
+                  }
+                }
+              }
+            }
+          } catch {}
           showScreen('screen-lobby');
           renderLobby();
           return;
@@ -959,7 +987,11 @@
       } catch {}
     }
 
-    function leaveRoom() {
+    async function leaveRoom() {
+      const token = await getToken();
+      if (token) {
+        await fetch('/api/leave-room', { method: 'POST', headers: { Authorization: `Bearer ${token}` } });
+      }
       roomCode = null;
       lastPhase = null;
       lastLogLen = 0;
