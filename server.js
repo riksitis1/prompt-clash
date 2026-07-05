@@ -32,9 +32,10 @@ function saveUsers(users) {
 // ============================================================
 // Gemini Init
 // ============================================================
-const genAI = process.env.GEMINI_API_KEY
-  ? new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
-  : null;
+const GEMINI_KEY = process.env.GEMINI_API_KEY || process.env.gemini_api_key || null;
+if (GEMINI_KEY) console.log('Gemini API key found, enabling AI judge');
+else console.log('No Gemini API key — battles will use fallback results');
+const genAI = GEMINI_KEY ? new GoogleGenerativeAI(GEMINI_KEY) : null;
 const model = genAI ? genAI.getGenerativeModel({ model: 'gemini-2.0-flash' }) : null;
 
 // ============================================================
