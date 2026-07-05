@@ -886,6 +886,7 @@
           readyEl.classList.add('hidden');
           input.disabled = false;
           submitBtn.disabled = false;
+          submitBtn.textContent = 'Submit';
           submitBtn.classList.remove('hidden');
         } else if (state.phase === 'submitting' && data?.ready) {
           inputArea.classList.add('hidden');

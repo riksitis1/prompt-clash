@@ -188,9 +188,42 @@ function startRoundTimer(room) {
   room.turnStartTime = Date.now();
   room.roundTimer = setTimeout(() => {
     if (room.phase !== 'submitting') return;
-    if (!room.p1.ready) { room.p1.entity = '(disqualified - timeout)'; room.p1.ready = true; }
-    if (!room.p2.ready) { room.p2.entity = '(disqualified - timeout)'; room.p2.ready = true; }
-    resolveBattle(room);
+    const p1Late = !room.p1.ready;
+    const p2Late = !room.p2.ready;
+    if (p1Late) { room.p1.hp = Math.max(0, room.p1.hp - 20); room.p1.entity = '(timed out)'; room.p1.ready = true; }
+    if (p2Late) { room.p2.hp = Math.max(0, room.p2.hp - 20); room.p2.entity = '(timed out)'; room.p2.ready = true; }
+    if (p1Late || p2Late) {
+      room.lastEntityP1 = room.p1.entity; room.lastEntityP2 = room.p2.entity;
+      room.p1.emoji = p1Late ? '⏰' : '✅'; room.p2.emoji = p2Late ? '⏰' : '✅';
+      const logEntry = {
+        round: ++room.currentRound, winner: 'none', winnerUsername: '', loserUsername: '',
+        player1Emoji: room.p1.emoji, player2Emoji: room.p2.emoji,
+        p1Entity: room.lastEntityP1, p2Entity: room.lastEntityP2,
+        damage: p1Late ? 20 : 0, counterDamage: p2Late ? 20 : 0,
+        winnerHp: room.p1.hp, loserHp: room.p2.hp,
+        description: p1Late && p2Late ? 'Both players ran out of time! Each takes 20 damage.' : (p1Late ? `${room.p1.username} ran out of time and takes 20 damage.` : `${room.p2.username} ran out of time and takes 20 damage.`),
+      };
+      room.battleLog.push(logEntry);
+      room.p1.entity = null; room.p2.entity = null;
+      room.p1.ready = false; room.p2.ready = false;
+      room.p1.entityHidden = true; room.p2.entityHidden = true;
+      if (room.p1.hp <= 0 || room.p2.hp <= 0) {
+        const winner = room.p1.hp > 0 ? room.p1 : room.p2;
+        const loser = room.p1.hp > 0 ? room.p2 : room.p1;
+        room.phase = 'game_over';
+        clearTimeout(room.advanceTimer);
+        updateEloAfterGame(room, winner, loser);
+        return;
+      }
+      room.phase = 'round_result';
+      clearTimeout(room.advanceTimer);
+      room.advanceTimer = setTimeout(() => {
+        if (room.phase === 'game_over') return;
+        room.phase = 'submitting'; startRoundTimer(room);
+      }, AUTO_ADVANCE_DELAY);
+    } else {
+      resolveBattle(room);
+    }
   }, ROUND_TIMEOUT);
 }
 
@@ -209,22 +242,24 @@ async function resolveBattle(room) {
 Player 1 submitted: "${e1}"
 Player 2 submitted: "${e2}"
 
-Evaluate this conceptual battle. Return ONLY valid JSON (no markdown, no extra text):
+Return ONLY valid JSON (no markdown, no extra text). This will be parsed programmatically:
 
 {
-  "winner": "player1" or "player2",
+  "winner": "player1" or "player2" or "tie",
   "player1Emoji": "single emoji representing entity1",
   "player2Emoji": "single emoji representing entity2",
-  "damage": <integer 10-40>,
+  "damage": <integer 0-40>,
   "counterDamage": <integer 0-20>,
   "description": "2-3 sentence vivid battle narration"
 }
 
-RULES:
-- If an entity does NOT belong to the "${genre}" genre, DISQUALIFY that player: they lose, take 40 damage, deal 0 counter-damage, and the description should be humorously dismissive.
-- "damage" is dealt TO the loser by the winner.
-- "counterDamage" is dealt TO the winner by the loser (representing a last strike).
-- Be creative and thematic.`;
+STRICT RULES:
+- GENRE CHECK: If an entity does NOT belong to the "${genre}" genre, DISQUALIFY that player: they lose, take 40 damage, deal 0 counter-damage, and the description should be humorously dismissive.
+- TIES: If both entities are equally matched (same power level, identical, or neither clearly beats the other), set winner to "tie", damage to 0, and counterDamage to 0. Example: cat vs cat is a tie.
+- POWER DIFFERENCE: If one entity is only slightly stronger than the other, keep damage low (10-15) and counterDamage 0-5. If there's a clear power gap, damage can be 16-30. Disqualifications use 40.
+- EMOJIS: Pick a single creative emoji that best represents each entity. For example, "dragon" → "🐉", "water droplet" → "💧", "laser gun" → "🔫".
+- "damage" is dealt TO the loser by the winner. "counterDamage" is dealt TO the winner by the loser.
+- Be creative, thematic, and fair.`;
 
   try {
     let data;
@@ -234,48 +269,62 @@ RULES:
       const cleaned = text.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
       data = JSON.parse(cleaned);
     } else {
-      data = { winner: Math.random() < 0.5 ? 'player1' : 'player2', player1Emoji: '⚔️', player2Emoji: '⚔️', damage: 20, counterDamage: 10, description: 'With no AI judge available, the battle is decided by fate.' };
+      data = { winner: ['player1', 'player2', 'tie'][Math.floor(Math.random() * 3)], player1Emoji: '⚔️', player2Emoji: '⚔️', damage: 20, counterDamage: 10, description: 'With no AI judge available, the battle is decided by fate.' };
     }
 
-    const p1Wins = data.winner === 'player1';
-    const loser = p1Wins ? room.p2 : room.p1;
-    const winner = p1Wins ? room.p1 : room.p2;
-    const damage = Math.min(40, Math.max(10, data.damage));
-    const counterDamage = Math.min(20, Math.max(0, data.counterDamage));
+    const isTie = data.winner === 'tie';
+    let damage = isTie ? 0 : Math.min(40, Math.max(1, data.damage));
+    let counterDamage = isTie ? 0 : Math.min(20, Math.max(0, data.counterDamage));
 
-    loser.hp -= damage;
-    winner.hp -= counterDamage;
-    if (loser.hp < 0) loser.hp = 0;
-    if (winner.hp < 0) winner.hp = 0;
-
-    room.p1.emoji = data.player1Emoji || '❓';
-    room.p2.emoji = data.player2Emoji || '❓';
-    room.lastEntityP1 = room.p1.entity;
-    room.lastEntityP2 = room.p2.entity;
-
-    const logEntry = {
-      round: ++room.currentRound,
-      winner: p1Wins ? 'player1' : 'player2',
-      winnerUsername: winner.username, loserUsername: loser.username,
-      player1Emoji: data.player1Emoji || '❓', player2Emoji: data.player2Emoji || '❓',
-      p1Entity: room.lastEntityP1, p2Entity: room.lastEntityP2,
-      damage, counterDamage, winnerHp: winner.hp, loserHp: loser.hp,
-      description: data.description || 'An epic battle ensued!',
-    };
-    room.battleLog.push(logEntry);
+    if (isTie) {
+      room.p1.emoji = data.player1Emoji || '❓';
+      room.p2.emoji = data.player2Emoji || '❓';
+      room.lastEntityP1 = room.p1.entity;
+      room.lastEntityP2 = room.p2.entity;
+      const logEntry = {
+        round: ++room.currentRound, winner: 'tie', winnerUsername: '', loserUsername: '',
+        player1Emoji: data.player1Emoji || '❓', player2Emoji: data.player2Emoji || '❓',
+        p1Entity: room.lastEntityP1, p2Entity: room.lastEntityP2,
+        damage: 0, counterDamage: 0, winnerHp: room.p1.hp, loserHp: room.p2.hp,
+        description: data.description || 'A perfectly matched battle! Neither prevails.',
+      };
+      room.battleLog.push(logEntry);
+    } else {
+      const p1Wins = data.winner === 'player1';
+      const loser = p1Wins ? room.p2 : room.p1;
+      const winner = p1Wins ? room.p1 : room.p2;
+      loser.hp -= damage;
+      winner.hp -= counterDamage;
+      if (loser.hp < 0) loser.hp = 0;
+      if (winner.hp < 0) winner.hp = 0;
+      room.p1.emoji = data.player1Emoji || '❓';
+      room.p2.emoji = data.player2Emoji || '❓';
+      room.lastEntityP1 = room.p1.entity;
+      room.lastEntityP2 = room.p2.entity;
+      const logEntry = {
+        round: ++room.currentRound, winner: p1Wins ? 'player1' : 'player2',
+        winnerUsername: winner.username, loserUsername: loser.username,
+        player1Emoji: data.player1Emoji || '❓', player2Emoji: data.player2Emoji || '❓',
+        p1Entity: room.lastEntityP1, p2Entity: room.lastEntityP2,
+        damage, counterDamage, winnerHp: winner.hp, loserHp: loser.hp,
+        description: data.description || 'An epic battle ensued!',
+      };
+      room.battleLog.push(logEntry);
+      if (loser.hp <= 0) {
+        room.phase = 'game_over';
+        clearTimeout(room.roundTimer);
+        clearTimeout(room.advanceTimer);
+        await updateEloAfterGame(room, winner, loser);
+        room.p1.entity = null; room.p2.entity = null;
+        room.p1.ready = false; room.p2.ready = false;
+        room.p1.entityHidden = true; room.p2.entityHidden = true;
+        return;
+      }
+    }
 
     room.p1.entity = null; room.p2.entity = null;
     room.p1.ready = false; room.p2.ready = false;
     room.p1.entityHidden = true; room.p2.entityHidden = true;
-
-    if (loser.hp <= 0) {
-      room.phase = 'game_over';
-      clearTimeout(room.roundTimer);
-      clearTimeout(room.advanceTimer);
-      await updateEloAfterGame(room, winner, loser);
-      return;
-    }
-
     room.phase = 'round_result';
     clearTimeout(room.advanceTimer);
     room.advanceTimer = setTimeout(() => {
@@ -336,9 +385,8 @@ async function updateEloAfterGame(room, winner, loser) {
 // --- Auth: Register ---
 app.post('/api/register', (req, res) => {
   const { username, password } = req.body;
-  if (!username || !password) return res.status(400).json({ error: 'Username and password required' });
-  if (username.length < 2) return res.status(400).json({ error: 'Username must be at least 2 characters' });
-  if (password.length < 4) return res.status(400).json({ error: 'Password must be at least 4 characters' });
+  if (!username || typeof username !== 'string' || username.trim().length < 2) return res.status(400).json({ error: 'Username must be at least 2 characters' });
+  if (!password || typeof password !== 'string' || password.length < 4) return res.status(400).json({ error: 'Password must be at least 4 characters' });
   try {
     if (findUserByUsername(username)) return res.status(409).json({ error: 'Username already taken' });
     const uid = uuidv4();
