@@ -260,7 +260,7 @@ Return ONLY valid JSON (no markdown, no extra text). This will be parsed program
   "player2Emoji": "single emoji representing entity2",
   "damage": <integer 0-40>,
   "counterDamage": <integer 0-20>,
-   "description": "1 very short sentence (max 10 words)"
+   "description": "1 punchy sentence (8-15 words) describing the action"
 }
 
 STRICT RULES:
@@ -280,7 +280,7 @@ STRICT RULES:
         const completion = await openai.chat.completions.create({
           model: 'llama-3.3-70b-versatile',
           messages: [
-            { role: 'system', content: 'You are an AI battle judge. Always respond in valid JSON. Keep descriptions very short (max 1 sentence, 10 words). No stories.' },
+            { role: 'system', content: 'You are an AI battle judge. Always respond in valid JSON. Keep descriptions short but vivid (8-15 words, 1 sentence). No stories.' },
             { role: 'user', content: prompt }
           ],
           response_format: { type: 'json_object' }
