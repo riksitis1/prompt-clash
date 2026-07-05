@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: concept-battle-game
+    name: prompt-clash
     runtime: node
     repo: https://github.com/riksitis1/concept-battle-game
     plan: free

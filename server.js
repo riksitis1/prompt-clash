@@ -617,7 +617,7 @@ app.get('/api/health', (req, res) => res.json({ status: 'ok', gemini: !!model, f
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Concept Battle server running on port ${PORT}`);
+  console.log(`Prompt Clash server running on port ${PORT}`);
   console.log(`  Gemini: ${model ? 'configured' : 'NOT configured (set GEMINI_API_KEY)'}`);
   console.log(`  Firebase: ${db ? 'configured' : 'NOT configured (set FIREBASE_* vars)'}`);
 });
