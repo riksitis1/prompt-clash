@@ -30,12 +30,12 @@ function saveUsers(users) {
 }
 
 // ============================================================
-// AI Init (OpenAI)
+// AI Init (Groq — free, OpenAI-compatible API)
 // ============================================================
-const OPENAI_KEY = process.env.OPENAI_API_KEY || null;
-if (OPENAI_KEY) console.log('OpenAI API key found, enabling AI judge (gpt-4o-mini)');
-else console.log('No OpenAI API key — battles will use fallback results');
-const openai = OPENAI_KEY ? new OpenAI({ apiKey: OPENAI_KEY }) : null;
+const GROQ_KEY = process.env.GROQ_API_KEY || null;
+if (GROQ_KEY) console.log('Groq API key found, enabling AI judge (llama-3.3-70b-versatile)');
+else console.log('No Groq API key — battles will use fallback results');
+const openai = GROQ_KEY ? new OpenAI({ apiKey: GROQ_KEY, baseURL: 'https://api.groq.com/openai/v1' }) : null;
 const battleCache = new Map();
 
 // ============================================================
@@ -229,7 +229,7 @@ function startRoundTimer(room) {
 }
 
 // ============================================================
-// AI BATTLE RESOLUTION (OpenAI)
+// AI BATTLE RESOLUTION (Groq)
 // ============================================================
 
 async function resolveBattle(room) {
@@ -277,7 +277,7 @@ STRICT RULES:
     for (let attempt = 0; attempt < 3; attempt++) {
       try {
         const completion = await openai.chat.completions.create({
-          model: 'gpt-4o-mini',
+          model: 'llama-3.3-70b-versatile',
           messages: [
             { role: 'system', content: 'You are an AI battle judge. Always respond in valid JSON.' },
             { role: 'user', content: prompt }
@@ -292,7 +292,7 @@ STRICT RULES:
       } catch (err) {
         const isQuota = err.status === 429 || (err.message && err.message.includes('429'));
         const delay = isQuota ? 15000 : 1000;
-        console.error(`OpenAI attempt ${attempt + 1} failed${isQuota ? ' (quota)' : ''}:`, err.message || err);
+        console.error(`Groq attempt ${attempt + 1} failed${isQuota ? ' (quota)' : ''}:`, err.message || err);
         if (attempt < 2) await new Promise(r => setTimeout(r, delay));
         else data = { winner: ['player1', 'player2', 'tie'][Math.floor(Math.random() * 3)], player1Emoji: '⚔️', player2Emoji: '⚔️', damage: 20, counterDamage: 10, description: 'The AI judge is unavailable. Fate decides the outcome.' };
       }
@@ -599,6 +599,6 @@ app.get('/api/health', (req, res) => res.json({ status: 'ok', ai: !!openai }));
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Prompt Clash server running on port ${PORT}`);
-  console.log(`  AI judge: ${openai ? 'enabled (gpt-4o-mini)' : 'NOT configured (set OPENAI_API_KEY)'}`);
+  console.log(`  AI judge: ${openai ? 'enabled (llama-3.3-70b via Groq)' : 'NOT configured (set GROQ_API_KEY)'}`);
   console.log(`  Users stored at: ${USERS_FILE}`);
 });

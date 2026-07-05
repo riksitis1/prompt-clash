@@ -9,7 +9,7 @@ services:
     startCommand: node server.js
     healthCheckPath: /api/health
     envVars:
-      - key: OPENAI_API_KEY
+      - key: GROQ_API_KEY
         sync: false
       - key: JWT_SECRET
         sync: false
