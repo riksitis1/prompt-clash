@@ -827,6 +827,11 @@
             const side = state.me?.side;
             if (side) document.getElementById(`battle-${side}-input`).value = '';
           }
+          // Reset arena emojis to hide previous round's fight
+          document.getElementById('arena-emoji-p1').textContent = '❓';
+          document.getElementById('arena-emoji-p2').textContent = '❓';
+          document.getElementById('arena-entity-p1').textContent = '';
+          document.getElementById('arena-entity-p2').textContent = '';
           break;
         case 'round_result':
           // stay on battle — animation will play
@@ -1228,12 +1233,22 @@
       document.getElementById('gameover-details').innerHTML = details;
     }
 
-    function backToLobby() {
+    async function backToLobby() {
       roomCode = null;
       lastPhase = null;
       lastLogLen = 0;
       isAnimating = false;
       playerSide = null;
+      // Refresh profile to get updated elo
+      const token = await getToken();
+      if (token) {
+        try {
+          const res = await fetch('/api/profile', {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          if (res.ok) currentProfile = await res.json();
+        } catch {}
+      }
       showScreen('screen-lobby');
       renderLobby();
     }
