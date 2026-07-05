@@ -6,96 +6,145 @@
   <title>Prompt Clash</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    * {
-      box-sizing: border-box;
-    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      font-family: 'Segoe UI', system-ui, sans-serif;
-      background: #0f0f23;
-      color: #e0e0e0;
+      font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+      background: linear-gradient(135deg, #0b0b1a 0%, #14142e 50%, #0f0f23 100%);
+      color: #e2e2e2;
       overflow-x: hidden;
     }
+    /* Subtle animated background */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: radial-gradient(ellipse at 20% 50%, rgba(99,102,241,0.06) 0%, transparent 50%),
+                  radial-gradient(ellipse at 80% 50%, rgba(167,139,250,0.04) 0%, transparent 50%);
+      pointer-events: none;
+      z-index: 0;
+    }
+    #app { position: relative; z-index: 1; }
+
     .screen {
       display: none;
+      opacity: 0;
+      transition: opacity 0.35s ease-in-out;
     }
+    .screen.active {
+      opacity: 1;
+    }
+
+    /* Card glass effect */
+    .glass-card {
+      background: rgba(26, 26, 62, 0.7);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(99, 102, 241, 0.15);
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    }
+    .glass-panel {
+      background: rgba(26, 26, 62, 0.5);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border: 1px solid rgba(99, 102, 241, 0.1);
+    }
+
+    /* Buttons */
+    .btn-primary {
+      background: linear-gradient(135deg, #6366f1, #4f46e5);
+      border: none;
+      font-weight: 700;
+      transition: all 0.25s ease;
+      box-shadow: 0 4px 16px rgba(99, 102, 241, 0.25);
+    }
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(99, 102, 241, 0.4);
+      background: linear-gradient(135deg, #818cf8, #6366f1);
+    }
+    .btn-primary:active {
+      transform: translateY(0);
+    }
+    .btn-primary:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+    }
+    .btn-secondary {
+      background: linear-gradient(135deg, #10b981, #059669);
+      border: none;
+      font-weight: 700;
+      transition: all 0.25s ease;
+      box-shadow: 0 4px 16px rgba(16, 185, 129, 0.25);
+    }
+    .btn-secondary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(16, 185, 129, 0.4);
+    }
+    .btn-danger {
+      background: linear-gradient(135deg, #ef4444, #dc2626);
+      border: none;
+      font-weight: 600;
+      transition: all 0.25s ease;
+    }
+    .btn-danger:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 16px rgba(239, 68, 68, 0.3);
+    }
+    .btn-ghost {
+      background: rgba(99, 102, 241, 0.1);
+      border: 1px solid rgba(99, 102, 241, 0.2);
+      font-weight: 600;
+      transition: all 0.25s ease;
+    }
+    .btn-ghost:hover {
+      background: rgba(99, 102, 241, 0.2);
+      border-color: rgba(99, 102, 241, 0.3);
+    }
+
     .hp-bar {
       transition: width 0.6s ease-out;
     }
     @keyframes shake {
-      0%,
-      100% {
-        transform: translateX(0);
-      }
-      10%,
-      30%,
-      50%,
-      70%,
-      90% {
-        transform: translateX(-6px);
-      }
-      20%,
-      40%,
-      60%,
-      80% {
-        transform: translateX(6px);
-      }
+      0%, 100% { transform: translateX(0); }
+      10%, 30%, 50%, 70%, 90% { transform: translateX(-6px); }
+      20%, 40%, 60%, 80% { transform: translateX(6px); }
     }
     @keyframes cloudPulse {
-      0% {
-        transform: scale(0.2);
-        opacity: 0;
-        border-radius: 50%;
-      }
-      40% {
-        transform: scale(1.3);
-        opacity: 0.9;
-        border-radius: 20%;
-      }
-      100% {
-        transform: scale(0);
-        opacity: 0;
-        border-radius: 50%;
-      }
+      0% { transform: scale(0.2); opacity: 0; border-radius: 50%; }
+      40% { transform: scale(1.3); opacity: 0.95; border-radius: 20%; }
+      100% { transform: scale(0); opacity: 0; border-radius: 50%; }
     }
     @keyframes dashAttack {
-      0% {
-        transform: translateX(0) scale(1);
-      }
-      30% {
-        transform: translateX(var(--dash-target)) scale(2);
-      }
-      60% {
-        transform: translateX(var(--dash-target)) scale(2.4);
-      }
-      100% {
-        transform: translateX(0) scale(1);
-      }
+      0% { transform: translateX(0) scale(1); }
+      30% { transform: translateX(var(--dash-target)) scale(2); }
+      60% { transform: translateX(var(--dash-target)) scale(2.4); }
+      100% { transform: translateX(0) scale(1); }
     }
     @keyframes flashRed {
-      0% {
-        background-color: transparent;
-      }
-      25% {
-        background-color: rgba(255, 0, 0, 0.7);
-      }
-      100% {
-        background-color: transparent;
-      }
+      0% { background-color: transparent; }
+      25% { background-color: rgba(255, 0, 0, 0.7); }
+      100% { background-color: transparent; }
     }
-    .shake {
-      animation: shake 0.5s ease-in-out;
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
     }
+    .shake { animation: shake 0.5s ease-in-out; }
+    .animate-fade-in-up { animation: fadeInUp 0.4s ease-out forwards; }
+
     .arena-emoji {
       font-size: 5rem;
       position: absolute;
       transition: all 0.5s ease-in-out;
       z-index: 5;
+      filter: drop-shadow(0 0 8px rgba(99, 102, 241, 0.3));
     }
     .arena-entity-label {
       position: absolute;
-      bottom: 8px;
+      bottom: 10px;
       font-size: 0.7rem;
-      color: #c7d2fe;
+      color: #a5b4fc;
       text-align: center;
       width: calc(50% - 20px);
       overflow: hidden;
@@ -103,269 +152,252 @@
       white-space: nowrap;
       z-index: 6;
       pointer-events: none;
+      font-weight: 500;
+      letter-spacing: 0.02em;
     }
     .fight-cloud-inner {
       animation: cloudPulse 0.9s ease-out forwards;
-      width: 160px;
-      height: 160px;
+      width: 170px;
+      height: 170px;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 3rem;
+      font-size: 3.5rem;
+      box-shadow: 0 0 60px rgba(251, 191, 36, 0.3);
     }
-    .dash-attack {
-      animation: dashAttack 0.9s ease-in-out forwards;
-    }
-    .flash-overlay {
-      animation: flashRed 0.5s ease-out;
-    }
+    .dash-attack { animation: dashAttack 0.9s ease-in-out forwards; }
+    .flash-overlay { animation: flashRed 0.5s ease-out; }
+
     .letter-avatar {
-      width: 64px;
-      height: 64px;
+      width: 60px;
+      height: 60px;
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 1.75rem;
+      font-size: 1.5rem;
       font-weight: 700;
       color: white;
       flex-shrink: 0;
       user-select: none;
+      box-shadow: 0 0 20px rgba(99, 102, 241, 0.15);
     }
     .log-container {
       max-height: 120px;
       overflow-y: auto;
       scroll-behavior: smooth;
     }
-    .log-container::-webkit-scrollbar {
-      width: 6px;
-    }
-    .log-container::-webkit-scrollbar-track {
-      background: #1a1a3e;
-      border-radius: 3px;
-    }
-    .log-container::-webkit-scrollbar-thumb {
-      background: #4a4a8a;
-      border-radius: 3px;
-    }
-    .countdown {
-      font-variant-numeric: tabular-nums;
-    }
-    .glow-border:focus {
-      box-shadow: 0 0 15px rgba(99, 102, 241, 0.5);
-      outline: none;
-    }
-    .entity-hidden {
-      filter: blur(6px);
-      user-select: none;
-    }
-    .entity-revealed {
-      filter: blur(0);
-    }
-    .hp-danger {
-      background: linear-gradient(to right, #ef4444, #dc2626) !important;
-    }
-    .hp-warning {
-      background: linear-gradient(to right, #f59e0b, #d97706) !important;
-    }
-    .hp-safe {
-      background: linear-gradient(to right, #22c55e, #10b981) !important;
-    }
-    .slide-enter {
-      transition: all 0.4s ease-in-out;
+    .log-container::-webkit-scrollbar { width: 5px; }
+    .log-container::-webkit-scrollbar-track { background: rgba(26, 26, 62, 0.5); border-radius: 3px; }
+    .log-container::-webkit-scrollbar-thumb { background: rgba(74, 74, 138, 0.6); border-radius: 3px; }
+
+    .countdown { font-variant-numeric: tabular-nums; }
+    .glow-border:focus { box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.5); outline: none; }
+    .glow-border { transition: box-shadow 0.2s ease; }
+    .entity-hidden { filter: blur(6px); user-select: none; }
+    .entity-revealed { filter: blur(0); }
+
+    .hp-danger { background: linear-gradient(to right, #ef4444, #dc2626) !important; }
+    .hp-warning { background: linear-gradient(to right, #f59e0b, #d97706) !important; }
+    .hp-safe { background: linear-gradient(to right, #22c55e, #10b981) !important; }
+    .hp-bar-track {
+      background: rgba(55, 55, 95, 0.6);
+      border-radius: 999px;
+      overflow: hidden;
+      height: 8px;
     }
   </style>
 </head>
 <body>
   <div id="app" class="min-h-screen flex flex-col">
     <!-- NAV -->
-    <nav class="px-6 py-3 flex items-center justify-between bg-[#1a1a3e] border-b border-indigo-800/50 shrink-0">
-      <h1 class="text-xl font-bold text-indigo-300">⚔️ Prompt Clash</h1>
-      <div id="nav-auth" class="flex items-center gap-3 text-sm">
-        <span id="nav-username" class="text-indigo-200 hidden"></span>
-        <button id="btn-logout" class="text-red-400 hover:text-red-300 hidden text-sm" onclick="logout()">Logout</button>
+    <nav class="px-6 py-4 flex items-center justify-between glass-card shrink-0 rounded-none border-t-0 border-x-0" style="background: rgba(15, 15, 35, 0.9); backdrop-filter: blur(16px);">
+      <h1 class="text-xl font-bold bg-gradient-to-r from-indigo-400 to-violet-300 bg-clip-text text-transparent">⚔️ Prompt Clash</h1>
+      <div id="nav-auth" class="flex items-center gap-4 text-sm">
+        <span id="nav-username" class="text-indigo-200 hidden font-medium"></span>
+        <button id="btn-logout" class="text-red-400 hover:text-red-300 hidden text-sm font-medium transition-colors" onclick="logout()">Logout</button>
       </div>
     </nav>
 
     <!-- SCREEN: AUTH -->
     <div id="screen-auth" class="screen active flex-1 flex items-center justify-center p-4">
-      <div class="bg-[#1a1a3e] p-8 rounded-2xl shadow-2xl w-full max-w-md border border-indigo-800/30">
-        <h2 class="text-2xl font-bold text-center mb-6 text-indigo-300">Enter the Arena</h2>
+      <div class="glass-card p-8 rounded-2xl w-full max-w-md animate-fade-in-up">
+        <h2 class="text-2xl font-bold text-center mb-2 bg-gradient-to-r from-indigo-400 to-violet-300 bg-clip-text text-transparent">Enter the Arena</h2>
+        <p class="text-center text-gray-500 text-sm mb-6">Sign in to battle</p>
         <div id="auth-error" class="text-red-400 text-sm mb-3 text-center hidden"></div>
-        <input id="auth-username-field" type="text" placeholder="Username" autocomplete="username" class="w-full p-3 mb-3 rounded-lg bg-[#0f0f23] border border-indigo-800/50 text-white glow-border outline-none">
-        <input id="auth-password" type="password" placeholder="Password" autocomplete="current-password" class="w-full p-3 mb-4 rounded-lg bg-[#0f0f23] border border-indigo-800/50 text-white glow-border outline-none">
+        <input id="auth-username-field" type="text" placeholder="Username" autocomplete="username" class="w-full px-4 py-3 mb-3 rounded-xl bg-[#0f0f23]/80 border border-indigo-800/40 text-white glow-border outline-none placeholder:text-gray-600">
+        <input id="auth-password" type="password" placeholder="Password" autocomplete="current-password" class="w-full px-4 py-3 mb-5 rounded-xl bg-[#0f0f23]/80 border border-indigo-800/40 text-white glow-border outline-none placeholder:text-gray-600">
         <div class="flex gap-3">
-          <button onclick="login()" class="flex-1 py-3 rounded-lg bg-indigo-600 hover:bg-indigo-500 font-semibold transition">Login</button>
-          <button onclick="register()" class="flex-1 py-3 rounded-lg bg-emerald-600 hover:bg-emerald-500 font-semibold transition">Register</button>
+          <button onclick="login()" class="flex-1 py-3 rounded-xl btn-primary text-base">Login</button>
+          <button onclick="register()" class="flex-1 py-3 rounded-xl btn-secondary text-base">Register</button>
         </div>
-        <div class="mt-4 text-center text-xs text-indigo-400/60">Sign in to battle</div>
       </div>
     </div>
 
     <!-- SCREEN: LOBBY -->
     <div id="screen-lobby" class="screen flex-1 flex flex-col items-center justify-center p-4 gap-6">
-      <div id="profile-card" class="flex items-center gap-5 bg-[#1a1a3e] p-6 rounded-2xl border border-indigo-800/30 w-full max-w-md">
-        <div id="lobby-avatar" class="letter-avatar text-2xl w-16 h-16">?</div>
+      <div id="profile-card" class="flex items-center gap-5 glass-card p-6 rounded-2xl w-full max-w-md">
+        <div id="lobby-avatar" class="letter-avatar text-xl w-16 h-16 text-2xl">?</div>
         <div>
-          <div id="lobby-username" class="text-xl font-bold"></div>
-          <div class="text-indigo-300 text-sm"><span id="lobby-elo">1000</span> Elo</div>
+          <div id="lobby-username" class="text-xl font-bold text-white"></div>
+          <div class="text-indigo-300 text-sm font-medium"><span id="lobby-elo">1000</span> Elo</div>
           <div class="text-xs text-gray-500"><span id="lobby-wins">0</span>W / <span id="lobby-games">0</span>G</div>
         </div>
       </div>
       <div class="flex gap-4">
-        <button onclick="findPublicMatch()" class="px-8 py-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-bold text-lg transition shadow-lg">Find Public Match</button>
-        <button onclick="createPrivateRoom()" class="px-8 py-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 font-bold text-lg transition shadow-lg">Private Room</button>
+        <button onclick="findPublicMatch()" class="px-8 py-4 rounded-xl btn-primary text-lg">Find Public Match</button>
+        <button onclick="createPrivateRoom()" class="px-8 py-4 rounded-xl btn-secondary text-lg">Private Room</button>
       </div>
-      <div id="private-room-code" class="text-2xl font-mono text-indigo-300 hidden bg-[#1a1a3e] px-6 py-3 rounded-xl border border-indigo-800/30"></div>
+      <div id="private-room-code" class="text-2xl font-mono text-indigo-300 hidden glass-card px-6 py-3 rounded-xl tracking-wider"></div>
       <div class="flex gap-2 items-center">
-        <input id="join-code-input" type="text" placeholder="Room Code" maxlength="4" class="w-32 p-3 rounded-lg bg-[#1a1a3e] border border-indigo-800/50 text-white text-center uppercase glow-border outline-none">
-        <button onclick="joinPrivateRoom()" class="px-5 py-3 rounded-lg bg-purple-600 hover:bg-purple-500 font-semibold transition">Join</button>
+        <input id="join-code-input" type="text" placeholder="Room Code" maxlength="4" class="w-32 px-4 py-3 rounded-xl bg-[#0f0f23]/80 border border-indigo-800/40 text-white text-center uppercase glow-border outline-none placeholder:text-gray-600">
+        <button onclick="joinPrivateRoom()" class="px-5 py-3 rounded-xl btn-ghost text-sm">Join</button>
       </div>
     </div>
 
     <!-- SCREEN: MATCHING -->
     <div id="screen-matching" class="screen flex-1 flex flex-col items-center justify-center gap-6">
-      <div class="text-5xl animate-pulse">🔍</div>
-      <div class="text-xl text-indigo-300">Searching for opponent...</div>
-      <div class="text-sm text-gray-500">Queue: <span id="queue-position">1</span></div>
-      <button onclick="leaveQueue()" class="px-6 py-2 rounded-lg bg-red-700 hover:bg-red-600 transition">Cancel</button>
+      <div class="text-6xl animate-pulse" style="filter: drop-shadow(0 0 20px rgba(99,102,241,0.3));">🔍</div>
+      <div class="text-xl text-indigo-300 font-medium">Searching for opponent...</div>
+      <div class="text-sm text-gray-500">Queue: <span id="queue-position" class="text-indigo-300 font-mono">1</span></div>
+      <button onclick="leaveQueue()" class="px-6 py-2 rounded-xl btn-danger text-sm">Cancel</button>
     </div>
 
     <!-- SCREEN: WAITING ROOM -->
     <div id="screen-waiting-room" class="screen flex-1 flex flex-col items-center justify-center gap-6">
-      <div class="text-5xl">⏳</div>
-      <div class="text-xl text-indigo-300">Room: <span id="waiting-room-code" class="font-mono font-bold"></span></div>
-      <div id="waiting-players" class="text-gray-400">Waiting for opponent...</div>
-      <div class="flex gap-4 mt-4">
+      <div class="text-6xl" style="filter: drop-shadow(0 0 20px rgba(99,102,241,0.2));">⏳</div>
+      <div class="text-xl text-indigo-300 font-medium">Room: <span id="waiting-room-code" class="font-mono font-bold text-indigo-200 tracking-widest"></span></div>
+      <div id="waiting-players" class="text-gray-500 text-sm">Waiting for opponent...</div>
+      <div class="flex gap-6 items-center mt-2">
         <div class="flex flex-col items-center gap-2">
-          <div id="waiting-p1-avatar" class="letter-avatar text-xl w-14 h-14 text-sm">?</div>
-          <div id="waiting-p1-name" class="text-sm text-indigo-200">You</div>
+          <div id="waiting-p1-avatar" class="letter-avatar w-14 h-14 text-lg">?</div>
+          <div id="waiting-p1-name" class="text-sm text-indigo-200 font-medium">You</div>
         </div>
-        <div class="flex items-center text-2xl text-gray-600">VS</div>
+        <div class="flex items-center text-xl font-bold text-gray-600">VS</div>
         <div class="flex flex-col items-center gap-2">
-          <div id="waiting-p2-avatar" class="letter-avatar text-xl w-14 h-14 text-sm bg-gray-700">?</div>
-          <div id="waiting-p2-name" class="text-sm text-gray-400">Waiting...</div>
+          <div id="waiting-p2-avatar" class="letter-avatar w-14 h-14 text-lg bg-gray-700">?</div>
+          <div id="waiting-p2-name" class="text-sm text-gray-500">Waiting...</div>
         </div>
       </div>
-      <button onclick="leaveRoom()" class="px-6 py-2 rounded-lg bg-red-700 hover:bg-red-600 transition text-sm">Leave Room</button>
+      <button onclick="leaveRoom()" class="px-6 py-2 rounded-xl btn-danger text-sm">Leave Room</button>
     </div>
 
     <!-- SCREEN: GENRE SELECT (P1) -->
     <div id="screen-genre" class="screen flex-1 flex flex-col items-center justify-center gap-6">
-      <div class="text-2xl text-indigo-300 font-bold">Choose the Battle Genre</div>
-      <div class="text-gray-500 text-sm">You are the host — pick the category for this round</div>
-      <select id="genre-dropdown" class="w-72 p-4 rounded-xl bg-[#1a1a3e] border border-indigo-800/50 text-white text-lg text-center glow-border outline-none cursor-pointer">
+      <div class="text-2xl font-bold bg-gradient-to-r from-indigo-400 to-violet-300 bg-clip-text text-transparent">Choose the Battle Genre</div>
+      <div class="text-gray-500 text-sm">You are the host — pick the category</div>
+      <select id="genre-dropdown" class="w-72 px-4 py-4 rounded-xl bg-[#0f0f23]/80 border border-indigo-800/40 text-white text-lg text-center glow-border outline-none cursor-pointer">
         <option value="Animals">🦁 Animals</option>
         <option value="Machines">⚙️ Machines</option>
         <option value="Mythical Creatures">🐉 Mythical Creatures</option>
         <option value="Elements">🔥 Elements</option>
         <option value="Cosmic">🌌 Cosmic</option>
       </select>
-      <button onclick="lockGenre()" class="px-12 py-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-bold text-xl transition shadow-lg">Lock In Genre</button>
+      <button onclick="lockGenre()" class="px-12 py-4 rounded-xl btn-primary text-xl">Lock In Genre</button>
     </div>
 
     <!-- SCREEN: WAITING GENRE (P2) -->
     <div id="screen-waiting-genre" class="screen flex-1 flex flex-col items-center justify-center gap-4">
-      <div class="text-5xl animate-pulse">🎲</div>
-      <div class="text-xl text-indigo-300">Host is choosing the genre...</div>
+      <div class="text-6xl animate-pulse" style="filter: drop-shadow(0 0 20px rgba(99,102,241,0.3));">🎲</div>
+      <div class="text-xl text-indigo-300 font-medium">Host is choosing the genre...</div>
     </div>
 
     <!-- SCREEN: BATTLE -->
     <div id="screen-battle" class="screen flex-1 flex flex-col p-3 gap-3 min-h-0">
       <!-- Top Bar -->
-      <div class="flex items-center justify-between text-sm shrink-0">
-        <span class="text-indigo-300 font-bold">⚔️ <span id="battle-genre">???</span></span>
-        <span class="text-gray-500">Round <span id="battle-round">1</span></span>
-        <span id="battle-countdown" class="font-mono text-indigo-200 countdown">30s</span>
+      <div class="flex items-center justify-between text-sm px-2 shrink-0">
+        <span class="text-indigo-300 font-bold text-base">⚔️ <span id="battle-genre">???</span></span>
+        <span class="text-gray-400">Round <span id="battle-round" class="text-indigo-200 font-medium">1</span></span>
+        <span id="battle-countdown" class="font-mono text-indigo-200 countdown text-base">30s</span>
       </div>
 
       <!-- Main Arena Row -->
       <div class="flex-1 flex items-stretch gap-3 min-h-0">
         <!-- P1 Side -->
-        <div class="flex-1 flex flex-col items-center justify-between bg-[#1a1a3e]/60 rounded-2xl p-4 border border-indigo-800/20 min-w-0">
+        <div class="flex-1 flex flex-col items-center justify-between glass-panel rounded-2xl p-4 min-w-0">
           <div class="flex flex-col items-center gap-1 shrink-0">
-            <div id="battle-p1-avatar" class="letter-avatar w-14 h-14 text-xl">?</div>
-            <div id="battle-p1-name" class="font-bold text-sm truncate max-w-full"></div>
-            <div id="battle-p1-elo" class="text-xs text-indigo-300"></div>
+            <div id="battle-p1-avatar" class="letter-avatar w-14 h-14">?</div>
+            <div id="battle-p1-name" class="font-bold text-sm truncate max-w-full text-white"></div>
+            <div id="battle-p1-elo" class="text-xs text-indigo-300/80"></div>
           </div>
           <div class="w-full flex-1 flex flex-col justify-center gap-2">
             <div id="battle-p1-input-area" class="text-center">
-              <input id="battle-p1-input" type="text" placeholder="Your entity..." class="w-full p-3 rounded-lg bg-[#0f0f23] border border-indigo-800/50 text-white glow-border outline-none text-center text-sm">
-              <button id="battle-p1-submit" onclick="submitEntity()" class="mt-2 w-full py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 font-semibold transition text-sm">Submit</button>
+              <input id="battle-p1-input" type="text" placeholder="Your entity..." class="w-full px-3 py-3 rounded-xl bg-[#0f0f23]/80 border border-indigo-800/40 text-white glow-border outline-none text-center text-sm placeholder:text-gray-600">
+              <button id="battle-p1-submit" onclick="submitEntity()" class="mt-2 w-full py-2.5 rounded-xl btn-primary text-sm">Submit</button>
             </div>
             <div id="battle-p1-ready" class="hidden flex-col items-center gap-1">
-              <div class="text-emerald-400 font-bold text-lg">✅ Ready!</div>
-              <div id="battle-p1-entity-blur" class="entity-hidden text-base text-gray-400"></div>
+              <div class="text-emerald-400 font-bold text-base">✅ Ready!</div>
+              <div id="battle-p1-entity-blur" class="entity-hidden text-sm text-gray-400"></div>
             </div>
           </div>
-          <div class="w-full shrink-0">
+          <div class="w-full shrink-0 mt-2">
             <div class="flex items-center gap-2">
-              <span class="text-xs text-gray-500 w-10">HP</span>
-              <div class="flex-1 h-4 rounded-full bg-gray-700 overflow-hidden">
+              <span class="text-xs text-gray-500 w-8">HP</span>
+              <div class="flex-1 hp-bar-track">
                 <div id="battle-p1-hp" class="hp-bar h-full hp-safe" style="width:100%"></div>
               </div>
-              <span id="battle-p1-hp-text" class="text-sm font-bold w-10 text-right">100</span>
+              <span id="battle-p1-hp-text" class="text-xs font-bold w-8 text-right text-gray-300">100</span>
             </div>
           </div>
         </div>
 
         <!-- Center Arena -->
-        <div id="arena-center" class="relative flex-[1.8] flex flex-col items-center justify-center bg-[#1a1a3e]/40 rounded-2xl border border-indigo-800/10 overflow-hidden shrink-0 min-w-[200px]">
+        <div id="arena-center" class="relative flex-[1.8] flex flex-col items-center justify-center glass-panel rounded-2xl overflow-hidden shrink-0 min-w-[200px]" style="border-color: rgba(99, 102, 241, 0.2); box-shadow: 0 0 30px rgba(99, 102, 241, 0.05);">
           <div id="arena-emoji-p1" class="arena-emoji" style="left:10px">❓</div>
           <div id="arena-emoji-p2" class="arena-emoji" style="right:10px">❓</div>
           <div id="arena-entity-p1" class="arena-entity-label" style="left:10px"> </div>
           <div id="arena-entity-p2" class="arena-entity-label" style="right:10px"> </div>
-          <div id="fight-cloud" class="absolute inset-0 flex items-center justify-center pointer-events-none z-10 hidden bg-black/30 rounded-2xl">
+          <div id="fight-cloud" class="absolute inset-0 flex items-center justify-center pointer-events-none z-10 hidden bg-black/40 rounded-2xl">
             <div class="fight-cloud-inner bg-gradient-to-br from-yellow-400 via-orange-400 to-red-500 rounded-full">💥</div>
           </div>
           <div id="arena-flash-overlay" class="absolute inset-0 pointer-events-none z-20 hidden rounded-2xl"></div>
-          <div id="arena-versus-text" class="text-2xl font-bold text-indigo-500/40">VS</div>
+          <div id="arena-versus-text" class="text-2xl font-bold text-indigo-500/20">⚡</div>
         </div>
 
         <!-- P2 Side -->
-        <div class="flex-1 flex flex-col items-center justify-between bg-[#1a1a3e]/60 rounded-2xl p-4 border border-indigo-800/20 min-w-0">
+        <div class="flex-1 flex flex-col items-center justify-between glass-panel rounded-2xl p-4 min-w-0">
           <div class="flex flex-col items-center gap-1 shrink-0">
-            <div id="battle-p2-avatar" class="letter-avatar w-14 h-14 text-xl">?</div>
-            <div id="battle-p2-name" class="font-bold text-sm truncate max-w-full"></div>
-            <div id="battle-p2-elo" class="text-xs text-indigo-300"></div>
+            <div id="battle-p2-avatar" class="letter-avatar w-14 h-14">?</div>
+            <div id="battle-p2-name" class="font-bold text-sm truncate max-w-full text-white"></div>
+            <div id="battle-p2-elo" class="text-xs text-indigo-300/80"></div>
           </div>
           <div class="w-full flex-1 flex flex-col justify-center gap-2">
             <div id="battle-p2-input-area" class="text-center">
-              <input id="battle-p2-input" type="text" placeholder="Your entity..." class="w-full p-3 rounded-lg bg-[#0f0f23] border border-indigo-800/50 text-white glow-border outline-none text-center text-sm" disabled>
-              <button id="battle-p2-submit" onclick="submitEntity()" class="mt-2 w-full py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 font-semibold transition text-sm hidden">Submit</button>
+              <input id="battle-p2-input" type="text" placeholder="Your entity..." class="w-full px-3 py-3 rounded-xl bg-[#0f0f23]/80 border border-indigo-800/40 text-white glow-border outline-none text-center text-sm placeholder:text-gray-600" disabled>
+              <button id="battle-p2-submit" onclick="submitEntity()" class="mt-2 w-full py-2.5 rounded-xl btn-primary text-sm hidden">Submit</button>
             </div>
             <div id="battle-p2-ready" class="hidden flex-col items-center gap-1">
-              <div class="text-emerald-400 font-bold text-lg">✅ Ready!</div>
-              <div id="battle-p2-entity-blur" class="entity-hidden text-base text-gray-400"></div>
+              <div class="text-emerald-400 font-bold text-base">✅ Ready!</div>
+              <div id="battle-p2-entity-blur" class="entity-hidden text-sm text-gray-400"></div>
             </div>
           </div>
-          <div class="w-full shrink-0">
+          <div class="w-full shrink-0 mt-2">
             <div class="flex items-center gap-2">
-              <span class="text-xs text-gray-500 w-10">HP</span>
-              <div class="flex-1 h-4 rounded-full bg-gray-700 overflow-hidden">
+              <span class="text-xs text-gray-500 w-8">HP</span>
+              <div class="flex-1 hp-bar-track">
                 <div id="battle-p2-hp" class="hp-bar h-full hp-safe" style="width:100%"></div>
               </div>
-              <span id="battle-p2-hp-text" class="text-sm font-bold w-10 text-right">100</span>
+              <span id="battle-p2-hp-text" class="text-xs font-bold w-8 text-right text-gray-300">100</span>
             </div>
           </div>
         </div>
       </div>
 
       <!-- Battle Log -->
-      <div class="bg-[#1a1a3e]/60 rounded-xl p-3 border border-indigo-800/20 shrink-0">
-        <div class="text-xs text-indigo-400 mb-1">📜 Battle Log</div>
+      <div class="glass-panel rounded-xl p-3 shrink-0">
+        <div class="text-xs text-indigo-400/80 mb-1 font-medium">📜 Battle Log</div>
         <div id="battle-log" class="log-container text-sm space-y-1">
-          <div class="text-gray-500 italic">Awaiting first battle...</div>
+          <div class="text-gray-500 italic text-xs">Awaiting first battle...</div>
         </div>
       </div>
     </div>
 
     <!-- SCREEN: GAME OVER -->
     <div id="screen-gameover" class="screen flex-1 flex flex-col items-center justify-center gap-6 p-4">
-      <div id="gameover-icon" class="text-7xl">🏆</div>
-      <div id="gameover-title" class="text-3xl font-bold text-indigo-300"></div>
-      <div id="gameover-details" class="text-gray-400 text-center max-w-md"></div>
-      <button onclick="backToLobby()" class="px-10 py-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-bold text-lg transition shadow-lg">Back to Lobby</button>
+      <div id="gameover-icon" class="text-8xl" style="filter: drop-shadow(0 0 30px rgba(99,102,241,0.3));">🏆</div>
+      <div id="gameover-title" class="text-3xl font-bold bg-gradient-to-r from-indigo-400 to-violet-300 bg-clip-text text-transparent"></div>
+      <div id="gameover-details" class="text-gray-400 text-center max-w-md leading-relaxed"></div>
+      <button onclick="backToLobby()" class="px-10 py-4 rounded-xl btn-primary text-lg">Back to Lobby</button>
     </div>
   </div>
 
@@ -389,9 +421,9 @@
     // UTILITY
     // ============================================================
     function showScreen(id) {
-      document.querySelectorAll('.screen').forEach(s => s.style.display = 'none');
+      document.querySelectorAll('.screen').forEach(s => { s.style.display = 'none'; s.classList.remove('active'); });
       const el = document.getElementById(id);
-      if (el) el.style.display = 'flex';
+      if (el) { el.style.display = 'flex'; requestAnimationFrame(() => el.classList.add('active')); }
     }
 
     function getToken() { return currentToken; }
