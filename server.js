@@ -301,6 +301,14 @@ const COMMON_WORDS = new Set([
   'trunk','trust','truth','try','tub','tube','tucker','tug','tumble','tumor','tune','tunnel','turbine',
   'turmoil','turn','turtle','tusk','tutor','twig','twilight','twin','twine','twirl','twist','twister',
   'tyrant',
+  // Known characters and brands (not gibberish)
+  'optimus','prime','megatron','bumblebee','starscream','soundwave','grimlock','godzilla','kingkong',
+  'superman','batman','wonder','woman','flash','aquaman','cyborg','hulk','thor','ironman','spider','man',
+  'darth','vader','yoda','luke','skywalker','obi','wan','kenobi','palpatine','gandalf','sauron','frodo',
+  'aragorn','legolas','gimli','harry','potter','voldemort','dumbledore','snape','shrek','donkey','fiona',
+  'pikachu','charizard','mewtwo','goku','vegeta','naruto','sasuke','luffy','zoro','ichigo','simba','mufasa',
+  'scar','timon','pumbaa','nemo','dory','marlin','buzz','lightyear','woody','jessie','elsa','anna','olaf',
+  'mickey','minnie','donald','daisy','goofy','pluto','bugs','bunny','daffy','porky','tweety','sylvester',
 ]);
 
 function isGibberish(entity) {
@@ -412,8 +420,8 @@ STRICT RULES:
 - GENRE CHECK: If an entity does NOT clearly belong to the "${genre}" genre, DISQUALIFY that player: they lose, take 40 damage, deal 0 counter-damage, and the description should be humorously dismissive.
 - NSFW / INAPPROPRIATE CONTENT: If an entity contains sexual, violent, hateful, or otherwise inappropriate content, IMMEDIATELY DISQUALIFY that player: they lose, take 40 damage, deal 0 counter-damage, and the description must say their submission was inappropriate and removed. Set player1Emoji to "🔞" for that player. NEVER describe the inappropriate content in the description — just say it was inappropriate.
 - TIES: If both entities are equally matched (same power level, identical, or neither clearly beats the other), set winner to "tie", damage to 0, and counterDamage to 0. Example: cat vs cat is a tie.
-- POWER COMPARISON: Compare entities using real-world logic, size, destructive capability, and genre context. A larger/more powerful entity (e.g. "T-Rex") should beat a smaller/weaker one (e.g. "Chicken"). A weapon (e.g. "Laser Cannon") beats an unarmored creature (e.g. "Deer"). A god-level entity (e.g. "Zeus") beats a mortal one (e.g. "Soldier"), but a clever mortal could slightly damage a god (counterDamage ~5). Always think step by step: which one would realistically win in a fight, and by how much?
-- POWER DIFFERENCE: If one entity is only slightly stronger than the other, keep damage low (10-15) and counterDamage 5-10. If there's a clear power gap (e.g. tank vs bicycle), damage 20-30 and counterDamage 0-5. If one utterly dominates (e.g. nuclear bomb vs ant), damage 35-40 and counterDamage 0. Disqualifications use 40. The loser should still get SOME counter-damage unless they are completely helpless.
+- POWER COMPARISON: Compare entities using real-world logic, size, destructive capability, weapons, armor, and genre context. Named characters/famous entities (e.g. "Optimus Prime", "Godzilla", "Superman", "Darth Vader") should be evaluated at their ESTABLISHED power level from their source material — a 28-foot transforming robot warrior with plasma cannons and super strength is vastly more powerful than a car. "Super X" or "Mega X" or "Ultra X" tacked onto a normal thing (e.g. "super lamborghini", "mega bicycle", "ultra spoon") does NOT make it significantly more powerful — it's still just a fast car, a bike, or a spoon. A larger/more powerful entity (e.g. "T-Rex") should beat a smaller/weaker one (e.g. "Chicken"). A weapon (e.g. "Laser Cannon") beats an unarmored creature (e.g. "Deer"). A god-level entity (e.g. "Zeus") beats a mortal one (e.g. "Soldier"), but a clever mortal could slightly damage a god (counterDamage ~5). Always think step by step: which one would realistically win in a fight, and by how much?
+- POWER DIFFERENCE: If one entity is only slightly stronger than the other, keep damage low (10-15) and counterDamage 5-10. If there's a clear power gap (e.g. tank vs bicycle), damage 20-30 and counterDamage 0-5. If one utterly dominates (e.g. nuclear bomb vs ant, Optimus Prime vs sports car, T-Rex vs house cat), damage 35-40 and counterDamage 0. Disqualifications use 40. The loser should still get SOME counter-damage unless they are completely helpless.
 - EMOJIS: Pick a single creative emoji that best represents each entity. For example, "dragon" → "🐉", "water droplet" → "💧", "laser gun" → "🔫".
 - "damage" is dealt TO the loser by the winner. "counterDamage" is dealt TO the winner by the loser.
 - Be creative, thematic, and fair. Think about which entity is naturally stronger and by how much.`;
