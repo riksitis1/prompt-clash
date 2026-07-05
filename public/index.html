@@ -214,16 +214,17 @@
     }
     .damage-popup {
       position: absolute;
-      font-size: 2.2rem;
+      font-size: 2.5rem;
       font-weight: 900;
       pointer-events: none;
       z-index: 20;
-      animation: floatUp 1.3s ease-out forwards;
-      text-shadow: 0 2px 12px rgba(0,0,0,0.6);
+      animation: floatUp 1.4s ease-out forwards;
+      text-shadow: 0 2px 16px rgba(0,0,0,0.7);
     }
     @keyframes floatUp {
-      0% { opacity: 1; transform: translateY(0) scale(1); }
-      100% { opacity: 0; transform: translateY(-90px) scale(1.5); }
+      0% { opacity: 1; transform: translateY(0) scale(0.8); }
+      30% { opacity: 1; transform: translateY(-10px) scale(1.2); }
+      100% { opacity: 0; transform: translateY(-100px) scale(1); }
     }
     .damage-text {
       position: absolute;
@@ -249,6 +250,28 @@
     }
     .dash-attack { animation: dashAttack 0.9s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
     .flash-overlay { animation: flashRed 0.5s ease-out; }
+
+    @keyframes knockback {
+      0% { transform: translateX(0) scale(1); opacity: 1; }
+      40% { transform: translateX(var(--kb-target)) scale(0.6); opacity: 0.9; }
+      100% { transform: translateX(var(--kb-target)) scale(0.3); opacity: 0; }
+    }
+    @keyframes charge {
+      0% { transform: translateX(0) scale(1); }
+      100% { transform: translateX(var(--charge-target)) scale(1.4); }
+    }
+    @keyframes victoryPulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.2); filter: drop-shadow(0 0 25px rgba(251, 191, 36, 0.6)); }
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+    .knockback { animation: knockback 0.7s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards; }
+    .charge-attack { animation: charge 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards; }
+    .victory-pulse { animation: victoryPulse 0.8s ease-in-out 2; }
+    .fade-in { animation: fadeIn 0.3s ease-out forwards; }
 
     .letter-avatar {
       width: 60px;
@@ -1354,7 +1377,7 @@
     }
 
     // ============================================================
-    // BATTLE ANIMATION (5 Phases)
+    // BATTLE ANIMATION — Clear 5-phase sequence
     // ============================================================
     async function playBattleAnimation(state, entry) {
       isAnimating = true;
@@ -1367,127 +1390,148 @@
       const dmgP1 = document.getElementById('arena-damage-p1');
       const dmgP2 = document.getElementById('arena-damage-p2');
       const descEl = document.getElementById('arena-desc');
+      const entityP1 = document.getElementById('arena-entity-p1');
+      const entityP2 = document.getElementById('arena-entity-p2');
 
       vsText.classList.add('hidden');
       dmgP1.classList.add('hidden');
       dmgP2.classList.add('hidden');
       descEl.classList.add('hidden');
-      emojiP1.style.transition = 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)';
-      emojiP2.style.transition = 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)';
-      emojiP1.style.transform = 'translateX(0)';
-      emojiP2.style.transform = 'translateX(0)';
+      entityP1.textContent = '';
+      entityP2.textContent = '';
+      emojiP1.classList.remove('hidden', 'knockback', 'charge-attack', 'victory-pulse');
+      emojiP2.classList.remove('hidden', 'knockback', 'charge-attack', 'victory-pulse');
+      emojiP1.style.transition = 'none';
+      emojiP2.style.transition = 'none';
+      emojiP1.style.transform = 'translateX(0) scale(1)';
+      emojiP2.style.transform = 'translateX(0) scale(1)';
       emojiP1.style.opacity = '1';
       emojiP2.style.opacity = '1';
-      emojiP1.textContent = entry.player1Emoji || '❓';
-      emojiP2.textContent = entry.player2Emoji || '❓';
-      emojiP1.classList.remove('hidden');
-      emojiP2.classList.remove('hidden');
-      emojiP1.className = 'arena-emoji';
-      emojiP2.className = 'arena-emoji';
       emojiP1.style.left = '10px';
       emojiP2.style.right = '10px';
+      emojiP1.textContent = entry.player1Emoji || '❓';
+      emojiP2.textContent = entry.player2Emoji || '❓';
       cloud.classList.add('hidden');
       flash.classList.add('hidden');
       flash.classList.remove('flash-overlay');
       arena.classList.remove('shake');
+      arena.style.background = '';
 
       void arena.offsetWidth;
 
-      // Phase 1 — Approach
-      emojiP1.style.transform = 'translateX(50px)';
-      emojiP2.style.transform = 'translateX(-50px)';
-      await sleep(800);
+      const isTie = entry.winner === 'tie';
+      const p1Wins = !isTie && entry.winner === 'player1';
+      const loserSide = p1Wins ? 'p2' : 'p1';
+      const winnerSide = p1Wins ? 'p1' : 'p2';
 
-      // Phase 2 — Clash
-      cloud.classList.remove('hidden');
+      // ===== Phase 1 — CHARGE (0-500ms) =====
+      emojiP1.classList.add('charge-attack');
+      emojiP2.classList.add('charge-attack');
+      emojiP1.style.setProperty('--charge-target', '40px');
+      emojiP2.style.setProperty('--charge-target', '-40px');
+      arena.style.background = 'rgba(255, 50, 50, 0.05)';
+      await sleep(500);
+
+      // ===== Phase 2 — COLLISION (500-1200ms) =====
+      emojiP1.classList.remove('charge-attack');
+      emojiP2.classList.remove('charge-attack');
       emojiP1.classList.add('hidden');
       emojiP2.classList.add('hidden');
-      await sleep(900);
+      cloud.classList.remove('hidden');
+      flash.classList.remove('hidden');
+      flash.classList.add('flash-overlay');
+      arena.classList.add('shake');
+      arena.style.background = '';
+      await sleep(700);
 
-      document.getElementById('arena-entity-p1').textContent = '';
-      document.getElementById('arena-entity-p2').textContent = '';
+      entityP1.textContent = '';
+      entityP2.textContent = '';
 
-      // Phase 3 — Reveal
+      // ===== Phase 3 — REVEAL (1200-1900ms) =====
       cloud.classList.add('hidden');
-      const isTie = entry.winner === 'tie';
+      flash.classList.add('hidden');
+      flash.classList.remove('flash-overlay');
+      arena.classList.remove('shake');
       emojiP1.classList.remove('hidden');
       emojiP2.classList.remove('hidden');
-      emojiP1.style.transform = 'translateX(0)';
-      emojiP2.style.transform = 'translateX(0)';
+      emojiP1.style.transform = 'translateX(0) scale(1)';
+      emojiP2.style.transform = 'translateX(0) scale(1)';
       emojiP1.style.left = '10px';
       emojiP2.style.right = '10px';
+      entityP1.textContent = entry.p1Entity || '';
+      entityP2.textContent = entry.p2Entity || '';
+      await sleep(700);
 
-      document.getElementById('arena-entity-p1').textContent = entry.p1Entity || '';
-      document.getElementById('arena-entity-p2').textContent = entry.p2Entity || '';
-      await sleep(900);
-
+      // ===== Phase 4 — OUTCOME (1900-2900ms) =====
       if (!isTie) {
-        const p1Wins = entry.winner === 'player1';
-        const loserSide = p1Wins ? 'p2' : 'p1';
-        const winnerSide = p1Wins ? 'p1' : 'p2';
-
-        // Phase 4 — Impact
-        const dashDir = p1Wins ? '200px' : '-200px';
         const winnerEmoji = p1Wins ? emojiP1 : emojiP2;
         const loserEmoji = p1Wins ? emojiP2 : emojiP1;
-        loserEmoji.classList.add('hidden');
 
-        winnerEmoji.style.setProperty('--dash-target', dashDir);
-        winnerEmoji.classList.add('dash-attack');
-        arena.classList.add('shake');
-        flash.classList.remove('hidden');
-        flash.classList.add('flash-overlay');
+        loserEmoji.classList.add('knockback');
+        loserEmoji.style.setProperty('--kb-target', p1Wins ? '120px' : '-120px');
+        winnerEmoji.classList.add('victory-pulse');
 
         const dmgEl = loserSide === 'p1' ? dmgP1 : dmgP2;
         dmgEl.textContent = `-${entry.damage}`;
         dmgEl.className = 'damage-popup';
         dmgEl.style.color = '#ef4444';
-        dmgEl.style.left = loserSide === 'p1' ? '15%' : '75%';
-        dmgEl.style.top = '30%';
+        dmgEl.style.left = loserSide === 'p1' ? '25%' : '55%';
+        dmgEl.style.top = '25%';
         dmgEl.classList.remove('hidden');
 
         if (entry.counterDamage > 0) {
+          await sleep(300);
           const cdmgEl = winnerSide === 'p1' ? dmgP1 : dmgP2;
           cdmgEl.textContent = `-${entry.counterDamage}`;
           cdmgEl.className = 'damage-popup';
           cdmgEl.style.color = '#f59e0b';
-          cdmgEl.style.left = winnerSide === 'p1' ? '15%' : '75%';
-          cdmgEl.style.top = '30%';
+          cdmgEl.style.left = winnerSide === 'p1' ? '25%' : '55%';
+          cdmgEl.style.top = '25%';
           cdmgEl.classList.remove('hidden');
         }
 
         const loserHp = p1Wins ? state.opponent?.hp : state.me?.hp || 0;
-        const hpBar = document.getElementById(`battle-${loserSide}-hp`);
-        hpBar.style.width = Math.max(0, loserHp) + '%';
+        document.getElementById(`battle-${loserSide}-hp`).style.width = Math.max(0, loserHp) + '%';
         if (entry.counterDamage > 0) {
           const winnerHp = p1Wins ? state.me?.hp : state.opponent?.hp || 0;
-          const wHpBar = document.getElementById(`battle-${winnerSide}-hp`);
-          wHpBar.style.width = Math.max(0, winnerHp) + '%';
+          document.getElementById(`battle-${winnerSide}-hp`).style.width = Math.max(0, winnerHp) + '%';
         }
 
+        await sleep(500);
+
         descEl.textContent = entry.description || '';
-        descEl.className = 'damage-text';
+        descEl.className = 'damage-text fade-in';
         descEl.classList.remove('hidden');
-
-        await sleep(1000);
-
-        arena.classList.remove('shake');
-        flash.classList.add('hidden');
-        winnerEmoji.classList.remove('dash-attack');
-        winnerEmoji.style.transform = 'translateX(0)';
-        dmgP1.classList.add('hidden');
-        dmgP2.classList.add('hidden');
-        descEl.classList.add('hidden');
+        await sleep(500);
       } else {
+        emojiP1.style.transition = 'all 0.5s ease-out';
+        emojiP2.style.transition = 'all 0.5s ease-out';
+        emojiP1.style.transform = 'translateX(-15px) scale(0.9)';
+        emojiP2.style.transform = 'translateX(15px) scale(0.9)';
+        await sleep(400);
         descEl.textContent = entry.description || 'A perfectly matched battle! Neither prevails.';
-        descEl.className = 'damage-text';
+        descEl.className = 'damage-text fade-in';
         descEl.style.color = '#fbbf24';
         descEl.classList.remove('hidden');
-        await sleep(1000);
-        descEl.classList.add('hidden');
+        await sleep(600);
       }
 
-      await sleep(400);
+      if (!isTie) {
+        (p1Wins ? emojiP2 : emojiP1).classList.remove('knockback');
+        (p1Wins ? emojiP1 : emojiP2).classList.remove('victory-pulse');
+      }
+      dmgP1.classList.add('hidden');
+      dmgP2.classList.add('hidden');
+      await sleep(300);
+
+      // ===== Phase 5 — RESULT =====
+      emojiP1.style.transition = 'all 0.4s ease-out';
+      emojiP2.style.transition = 'all 0.4s ease-out';
+      emojiP1.style.transform = 'translateX(0) scale(1)';
+      emojiP2.style.transform = 'translateX(0) scale(1)';
+      emojiP1.style.left = '10px';
+      emojiP2.style.right = '10px';
+      descEl.classList.add('hidden');
 
       const log = document.getElementById('battle-log');
       renderLog(state.battleLog);
