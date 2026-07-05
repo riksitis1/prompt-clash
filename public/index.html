@@ -591,6 +591,11 @@
         const state = await stateRes.json();
         if (state.phase !== 'waiting') {
           // Already has opponent — go straight to battle
+          playerSide = state.me?.side;
+          lastPhase = state.phase;
+          onPhaseChange(state);
+          updateBattleUI(state);
+          updateCountdown(state);
           startPolling();
           return;
         }
