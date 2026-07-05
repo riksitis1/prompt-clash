@@ -50,7 +50,7 @@ app.use(express.static('public'));
 // In-Memory State (rooms are ephemeral — not saved to disk)
 // ============================================================
 const rooms = new Map();
-const GENRES = ['Animals', 'Machines', 'Mythical Creatures', 'Elements', 'Cosmic'];
+const GENRES = ['Animals', 'Machines', 'Mythical Creatures', 'Elements', 'Cosmic', 'Fantasy', 'Sci-Fi', 'Food', 'Sports', 'Nature', 'Magic', 'Technology', 'Underwater', 'Dinosaurs', 'Superheroes', 'Weather', 'Robots', 'Crystals & Gems', 'Insects', 'Cars & Vehicles'];
 const ROUND_TIMEOUT = 30000;
 const AUTO_ADVANCE_DELAY = 6000;
 const ELO_K = 48;
