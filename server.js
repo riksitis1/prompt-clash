@@ -187,6 +187,17 @@ async function getUserData(uid) {
 // ============================================================
 
 function startRoundTimer(room) {
+  // Safety: if either player at 0 HP, end game immediately
+  if ((room.p1?.hp ?? 100) <= 0 || (room.p2?.hp ?? 100) <= 0) {
+    room.phase = 'game_over';
+    clearTimeout(room.roundTimer);
+    clearTimeout(room.advanceTimer);
+    const p1Dead = (room.p1?.hp ?? 100) <= 0;
+    const winner = p1Dead ? room.p2 : room.p1;
+    const loser = p1Dead ? room.p1 : room.p2;
+    updateEloAfterGame(room, winner, loser);
+    return;
+  }
   clearTimeout(room.roundTimer);
   room.turnStartTime = Date.now();
   room.roundTimer = setTimeout(async () => {
@@ -361,11 +372,15 @@ async function applyBattleResult(room, data) {
     if (winnerDisqualified) { if (p1Wins) logEntry.p1Entity = '[REDACTED]'; else logEntry.p2Entity = '[REDACTED]'; }
   }
 
-  if (loser.hp <= 0) {
+  if (loser.hp <= 0 || winner.hp <= 0) {
     room.phase = 'game_over';
     clearTimeout(room.roundTimer);
     clearTimeout(room.advanceTimer);
-    await updateEloAfterGame(room, winner, loser);
+    // Both died: determine true winner by who has more HP (>0 preferred)
+    const bothDead = loser.hp <= 0 && winner.hp <= 0;
+    const eloWinner = !bothDead && loser.hp <= 0 ? winner : (!bothDead && winner.hp <= 0 ? loser : winner);
+    const eloLoser = eloWinner === winner ? loser : winner;
+    await updateEloAfterGame(room, eloWinner, eloLoser);
     room.p1.entity = null; room.p2.entity = null;
     room.p1.ready = false; room.p2.ready = false;
     room.p1.entityHidden = true; room.p2.entityHidden = true;

@@ -1230,6 +1230,8 @@
       vsText.classList.remove('hidden');
       isAnimating = false;
       if (pendingGameOverState) {
+        // Show final entities on battle screen for 5s before transitioning to game over
+        await sleep(5000);
         showGameOver(pendingGameOverState);
         pendingGameOverState = null;
       }
