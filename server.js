@@ -281,10 +281,11 @@ STRICT RULES:
 - GENRE CHECK: If an entity does NOT clearly belong to the "${genre}" genre, DISQUALIFY that player: they lose, take 40 damage, deal 0 counter-damage, and the description should be humorously dismissive.
 - NSFW / INAPPROPRIATE CONTENT: If an entity contains sexual, violent, hateful, or otherwise inappropriate content, IMMEDIATELY DISQUALIFY that player: they lose, take 40 damage, deal 0 counter-damage, and the description must say their submission was inappropriate and removed. Set player1Emoji to "🔞" for that player. NEVER describe the inappropriate content in the description — just say it was inappropriate.
 - TIES: If both entities are equally matched (same power level, identical, or neither clearly beats the other), set winner to "tie", damage to 0, and counterDamage to 0. Example: cat vs cat is a tie.
-- POWER DIFFERENCE: If one entity is only slightly stronger than the other, keep damage low (10-15) and counterDamage 0-5. If there's a clear power gap, damage can be 16-30. Disqualifications use 40.
+- POWER COMPARISON: Compare entities using real-world logic, size, destructive capability, and genre context. A larger/more powerful entity (e.g. "T-Rex") should beat a smaller/weaker one (e.g. "Chicken"). A weapon (e.g. "Laser Cannon") beats an unarmored creature (e.g. "Deer"). A god-level entity (e.g. "Zeus") beats a mortal one (e.g. "Soldier"), but a clever mortal could slightly damage a god (counterDamage ~5). Always think step by step: which one would realistically win in a fight, and by how much?
+- POWER DIFFERENCE: If one entity is only slightly stronger than the other, keep damage low (10-15) and counterDamage 5-10. If there's a clear power gap (e.g. tank vs bicycle), damage 20-30 and counterDamage 0-5. If one utterly dominates (e.g. nuclear bomb vs ant), damage 35-40 and counterDamage 0. Disqualifications use 40. The loser should still get SOME counter-damage unless they are completely helpless.
 - EMOJIS: Pick a single creative emoji that best represents each entity. For example, "dragon" → "🐉", "water droplet" → "💧", "laser gun" → "🔫".
 - "damage" is dealt TO the loser by the winner. "counterDamage" is dealt TO the winner by the loser.
-- Be creative, thematic, and fair.`;
+- Be creative, thematic, and fair. Think about which entity is naturally stronger and by how much.`;
 
   let data;
   if (openai) {
