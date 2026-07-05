@@ -263,105 +263,84 @@ STRICT RULES:
 - "damage" is dealt TO the loser by the winner. "counterDamage" is dealt TO the winner by the loser.
 - Be creative, thematic, and fair.`;
 
-  try {
-    let data;
-    if (model) {
+  let data;
+  if (model) {
+    try {
       const result = await model.generateContent(prompt);
       const text = result.response.text();
-      // Extract JSON from anywhere in the response
       const jsonMatch = text.replace(/```(?:json)?\s*/gi, '').replace(/```/g, '').trim();
       const start = jsonMatch.indexOf('{');
       const end = jsonMatch.lastIndexOf('}');
       const cleaned = start >= 0 && end > start ? jsonMatch.slice(start, end + 1) : jsonMatch;
       data = JSON.parse(cleaned);
-    } else {
-      data = { winner: ['player1', 'player2', 'tie'][Math.floor(Math.random() * 3)], player1Emoji: '⚔️', player2Emoji: '⚔️', damage: 20, counterDamage: 10, description: 'With no AI judge available, the battle is decided by fate.' };
+    } catch (err) {
+      console.error('Gemini API error:', err.message || err);
+      data = { winner: ['player1', 'player2', 'tie'][Math.floor(Math.random() * 3)], player1Emoji: '⚔️', player2Emoji: '⚔️', damage: 20, counterDamage: 10, description: 'The AI judge is unavailable. Fate decides the outcome.' };
     }
-
-    const isTie = data.winner === 'tie';
-    let damage = isTie ? 0 : Math.min(40, Math.max(1, data.damage));
-    let counterDamage = isTie ? 0 : Math.min(20, Math.max(0, data.counterDamage));
-
-    if (isTie) {
-      room.p1.emoji = data.player1Emoji || '❓';
-      room.p2.emoji = data.player2Emoji || '❓';
-      room.lastEntityP1 = room.p1.entity;
-      room.lastEntityP2 = room.p2.entity;
-      const logEntry = {
-        round: ++room.currentRound, winner: 'tie', winnerUsername: '', loserUsername: '',
-        player1Emoji: data.player1Emoji || '❓', player2Emoji: data.player2Emoji || '❓',
-        p1Entity: room.lastEntityP1, p2Entity: room.lastEntityP2,
-        damage: 0, counterDamage: 0, winnerHp: room.p1.hp, loserHp: room.p2.hp,
-        description: data.description || 'A perfectly matched battle! Neither prevails.',
-      };
-      room.battleLog.push(logEntry);
-    } else {
-      const p1Wins = data.winner === 'player1';
-      const loser = p1Wins ? room.p2 : room.p1;
-      const winner = p1Wins ? room.p1 : room.p2;
-      loser.hp -= damage;
-      winner.hp -= counterDamage;
-      if (loser.hp < 0) loser.hp = 0;
-      if (winner.hp < 0) winner.hp = 0;
-      room.p1.emoji = data.player1Emoji || '❓';
-      room.p2.emoji = data.player2Emoji || '❓';
-      room.lastEntityP1 = room.p1.entity;
-      room.lastEntityP2 = room.p2.entity;
-      const logEntry = {
-        round: ++room.currentRound, winner: p1Wins ? 'player1' : 'player2',
-        winnerUsername: winner.username, loserUsername: loser.username,
-        player1Emoji: data.player1Emoji || '❓', player2Emoji: data.player2Emoji || '❓',
-        p1Entity: room.lastEntityP1, p2Entity: room.lastEntityP2,
-        damage, counterDamage, winnerHp: winner.hp, loserHp: loser.hp,
-        description: data.description || 'An epic battle ensued!',
-      };
-      room.battleLog.push(logEntry);
-      if (loser.hp <= 0) {
-        room.phase = 'game_over';
-        clearTimeout(room.roundTimer);
-        clearTimeout(room.advanceTimer);
-        await updateEloAfterGame(room, winner, loser);
-        room.p1.entity = null; room.p2.entity = null;
-        room.p1.ready = false; room.p2.ready = false;
-        room.p1.entityHidden = true; room.p2.entityHidden = true;
-        return;
-      }
-    }
-
-    room.p1.entity = null; room.p2.entity = null;
-    room.p1.ready = false; room.p2.ready = false;
-    room.p1.entityHidden = true; room.p2.entityHidden = true;
-    room.phase = 'round_result';
-    clearTimeout(room.advanceTimer);
-    room.advanceTimer = setTimeout(() => {
-      if (room.phase === 'game_over') return;
-      room.phase = 'submitting';
-      startRoundTimer(room);
-    }, AUTO_ADVANCE_DELAY);
-  } catch (err) {
-    console.error('Gemini error:', err);
-    const logEntry = {
-      round: ++room.currentRound, winner: 'player1',
-      winnerUsername: room.p1.username, loserUsername: room.p2.username,
-      player1Emoji: '⚔️', player2Emoji: '⚔️',
-      p1Entity: room.p1.entity, p2Entity: room.p2.entity,
-      damage: 20, counterDamage: 10, winnerHp: room.p1.hp - 10, loserHp: room.p2.hp - 20,
-      description: 'The AI judge encountered an error. Both sides exchange inconclusive blows.',
-    };
-    room.p1.hp -= 10; room.p2.hp -= 20;
-    if (room.p1.hp < 0) room.p1.hp = 0;
-    if (room.p2.hp < 0) room.p2.hp = 0;
-    room.battleLog.push(logEntry);
-    room.p1.entity = null; room.p2.entity = null;
-    room.p1.ready = false; room.p2.ready = false;
-    room.phase = 'round_result';
-    clearTimeout(room.advanceTimer);
-    room.advanceTimer = setTimeout(() => {
-      if (room.phase === 'game_over') return;
-      room.phase = 'submitting';
-      startRoundTimer(room);
-    }, AUTO_ADVANCE_DELAY);
+  } else {
+    data = { winner: ['player1', 'player2', 'tie'][Math.floor(Math.random() * 3)], player1Emoji: '⚔️', player2Emoji: '⚔️', damage: 20, counterDamage: 10, description: 'With no AI judge available, the battle is decided by fate.' };
   }
+
+  const isTie = data.winner === 'tie';
+  let damage = isTie ? 0 : Math.min(40, Math.max(1, data.damage));
+  let counterDamage = isTie ? 0 : Math.min(20, Math.max(0, data.counterDamage));
+
+  if (isTie) {
+    room.p1.emoji = data.player1Emoji || '❓';
+    room.p2.emoji = data.player2Emoji || '❓';
+    room.lastEntityP1 = room.p1.entity;
+    room.lastEntityP2 = room.p2.entity;
+    const logEntry = {
+      round: ++room.currentRound, winner: 'tie', winnerUsername: '', loserUsername: '',
+      player1Emoji: data.player1Emoji || '❓', player2Emoji: data.player2Emoji || '❓',
+      p1Entity: room.lastEntityP1, p2Entity: room.lastEntityP2,
+      damage: 0, counterDamage: 0, winnerHp: room.p1.hp, loserHp: room.p2.hp,
+      description: data.description || 'A perfectly matched battle! Neither prevails.',
+    };
+    room.battleLog.push(logEntry);
+  } else {
+    const p1Wins = data.winner === 'player1';
+    const loser = p1Wins ? room.p2 : room.p1;
+    const winner = p1Wins ? room.p1 : room.p2;
+    loser.hp -= damage;
+    winner.hp -= counterDamage;
+    if (loser.hp < 0) loser.hp = 0;
+    if (winner.hp < 0) winner.hp = 0;
+    room.p1.emoji = data.player1Emoji || '❓';
+    room.p2.emoji = data.player2Emoji || '❓';
+    room.lastEntityP1 = room.p1.entity;
+    room.lastEntityP2 = room.p2.entity;
+    const logEntry = {
+      round: ++room.currentRound, winner: p1Wins ? 'player1' : 'player2',
+      winnerUsername: winner.username, loserUsername: loser.username,
+      player1Emoji: data.player1Emoji || '❓', player2Emoji: data.player2Emoji || '❓',
+      p1Entity: room.lastEntityP1, p2Entity: room.lastEntityP2,
+      damage, counterDamage, winnerHp: winner.hp, loserHp: loser.hp,
+      description: data.description || 'An epic battle ensued!',
+    };
+    room.battleLog.push(logEntry);
+    if (loser.hp <= 0) {
+      room.phase = 'game_over';
+      clearTimeout(room.roundTimer);
+      clearTimeout(room.advanceTimer);
+      await updateEloAfterGame(room, winner, loser);
+      room.p1.entity = null; room.p2.entity = null;
+      room.p1.ready = false; room.p2.ready = false;
+      room.p1.entityHidden = true; room.p2.entityHidden = true;
+      return;
+    }
+  }
+
+  room.p1.entity = null; room.p2.entity = null;
+  room.p1.ready = false; room.p2.ready = false;
+  room.p1.entityHidden = true; room.p2.entityHidden = true;
+  room.phase = 'round_result';
+  clearTimeout(room.advanceTimer);
+  room.advanceTimer = setTimeout(() => {
+    if (room.phase === 'game_over') return;
+    room.phase = 'submitting';
+    startRoundTimer(room);
+  }, AUTO_ADVANCE_DELAY);
 }
 
 // ============================================================
