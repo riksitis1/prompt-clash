@@ -780,7 +780,7 @@
       console.log('SHOWSCREEN:', id);
       document.querySelectorAll('.screen').forEach(s => { s.style.display = 'none'; s.classList.remove('active'); });
       const el = document.getElementById(id);
-      if (el) { el.style.display = 'flex'; requestAnimationFrame(() => el.classList.add('active')); }
+      if (el) { el.style.display = 'flex'; el.classList.add('active'); }
       else { console.log('SHOWSCREEN: element not found:', id); }
     }
 
@@ -1333,16 +1333,16 @@
       }
 
       if (phase === 'submitting' || phase === 'resolving' || phase === 'round_result') {
-        updateBattleUI(state);
+        try { updateBattleUI(state); } catch (e) { console.error('updateBattleUI error:', e); }
       }
 
       if (phase === 'submitting') {
-        updateCountdown(state);
+        try { updateCountdown(state); } catch (e) { console.error('updateCountdown error:', e); }
       } else {
         if (countdownInterval) { clearInterval(countdownInterval);
           countdownInterval = null; }
-        document.getElementById('battle-countdown').textContent = '--';
-        document.getElementById('battle-countdown').style.color = '';
+        const cd = document.getElementById('battle-countdown');
+        if (cd) { cd.textContent = '--'; cd.style.color = ''; }
       }
 
       if (state.battleLog && state.battleLog.length > lastLogLen) {
@@ -1381,18 +1381,28 @@
           }
           break;
         case 'submitting':
-          showScreen('screen-battle');
-          document.getElementById('battle-round').textContent = (state.currentRound || 0) + 1;
-          document.getElementById('battle-genre').textContent = state.genre || '???';
-          turnStartTime = state.turnStartTime || Date.now();
-          {
-            const side = state.me?.side;
-            if (side) document.getElementById(`battle-${side}-input`).value = '';
-          }
-          document.getElementById('arena-emoji-p1').textContent = '❓';
-          document.getElementById('arena-emoji-p2').textContent = '❓';
-          document.getElementById('arena-entity-p1').textContent = '';
-          document.getElementById('arena-entity-p2').textContent = '';
+          try {
+            showScreen('screen-battle');
+            document.getElementById('battle-round').textContent = (state.currentRound || 0) + 1;
+            document.getElementById('battle-genre').textContent = state.genre || '???';
+            turnStartTime = state.turnStartTime || Date.now();
+            {
+              const side = state.me?.side;
+              if (side) {
+                const input = document.getElementById(`battle-${side}-input`);
+                if (input) input.value = '';
+                else console.log('submitting: input not found for', side);
+              }
+            }
+            const ep1 = document.getElementById('arena-emoji-p1');
+            const ep2 = document.getElementById('arena-emoji-p2');
+            const ent1 = document.getElementById('arena-entity-p1');
+            const ent2 = document.getElementById('arena-entity-p2');
+            if (ep1) ep1.textContent = '❓'; else console.log('missing arena-emoji-p1');
+            if (ep2) ep2.textContent = '❓'; else console.log('missing arena-emoji-p2');
+            if (ent1) ent1.textContent = ''; else console.log('missing arena-entity-p1');
+            if (ent2) ent2.textContent = ''; else console.log('missing arena-entity-p2');
+          } catch (e) { console.error('onPhaseChange submitting error:', e); }
           break;
         case 'round_result':
           break;
@@ -1460,32 +1470,31 @@
       const submitBtn = document.getElementById(`battle-${prefix}-submit`);
       const blurEl = document.getElementById(`battle-${prefix}-entity-blur`);
 
+      if (!avatarEl || !nameEl || !hpBar) { console.log('updatePlayerPanel: missing elements for', side); return; }
+
       const uname = data?.username || '?';
       avatarEl.textContent = uname.charAt(0).toUpperCase();
       avatarEl.style.backgroundColor = data?.avatarColor || avatarStyle(uname);
       nameEl.textContent = uname;
-      eloEl.textContent = (data?.elo || 1000) + ' Elo';
+      if (eloEl) eloEl.textContent = (data?.elo || 1000) + ' Elo';
 
       const hp = data?.hp ?? 100;
       hpBar.style.width = Math.max(0, hp) + '%';
-      hpText.textContent = Math.max(0, hp);
+      if (hpText) hpText.textContent = Math.max(0, hp);
       hpBar.className = 'hp-bar h-full ' + (hp <= 30 ? 'hp-danger' : hp <= 60 ? 'hp-warning' : 'hp-safe');
 
       const isMe = state.me?.side === side;
 
       if (isMe) {
         if (state.phase === 'submitting' && !data?.ready) {
-          inputArea.classList.remove('hidden');
-          readyEl.classList.add('hidden');
-          input.disabled = false;
-          submitBtn.disabled = false;
-          submitBtn.textContent = 'Submit';
-          submitBtn.classList.remove('hidden');
+          if (inputArea) inputArea.classList.remove('hidden');
+          if (readyEl) readyEl.classList.add('hidden');
+          if (input) input.disabled = false;
+          if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Submit'; submitBtn.classList.remove('hidden'); }
         } else if (state.phase === 'submitting' && data?.ready) {
-          inputArea.classList.add('hidden');
-          readyEl.classList.remove('hidden');
-          blurEl.textContent = 'Submitted!';
-          blurEl.className = 'entity-hidden text-base text-emerald-400';
+          if (inputArea) inputArea.classList.add('hidden');
+          if (readyEl) readyEl.classList.remove('hidden');
+          if (blurEl) { blurEl.textContent = 'Submitted!'; blurEl.className = 'entity-hidden text-base text-emerald-400'; }
         } else {
           inputArea.classList.add('hidden');
           readyEl.classList.remove('hidden');
