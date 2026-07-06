@@ -790,14 +790,59 @@ app.post('/api/lock-genre', (req, res) => {
   if (room.p1.userId !== user.uid) return res.status(403).json({ error: 'Only the host can lock genre' });
   if (!GENRES.includes(genre)) return res.status(400).json({ error: 'Invalid genre' });
   room.genre = genre;
-  room.phase = 'submitting';
-  startRoundTimer(room);
   res.json({ success: true });
 });
 
 // --- Game: Random Genre ---
 app.get('/api/random-genre', (req, res) => {
   res.json({ genre: GENRES[Math.floor(Math.random() * GENRES.length)] });
+});
+
+// --- Private Game: Start ---
+app.post('/api/start-game', (req, res) => {
+  const user = verifyToken(req);
+  if (!user) return res.status(401).json({ error: 'Unauthorized' });
+  const { code } = req.body;
+  const room = rooms.get(code?.toUpperCase());
+  if (!room) return res.status(404).json({ error: 'Room not found' });
+  if (room.p1.userId !== user.uid) return res.status(403).json({ error: 'Only the host can start' });
+  if (!room.p2) return res.status(400).json({ error: 'Opponent not joined' });
+  if (!room.genre) return res.status(400).json({ error: 'No genre selected' });
+  if (room.phase !== 'genre_select') return res.status(400).json({ error: 'Cannot start now' });
+  room.p1.hp = 100; room.p2.hp = 100;
+  room.p1.entity = null; room.p2.entity = null;
+  room.p1.ready = false; room.p2.ready = false;
+  room.p1.entityHidden = true; room.p2.entityHidden = true;
+  room.currentRound = 0;
+  room.battleLog = [];
+  room.phase = 'submitting';
+  room.turnStartTime = Date.now();
+  startRoundTimer(room);
+  res.json({ success: true });
+});
+
+// --- Private Game: Reset (return to lobby after game over) ---
+app.post('/api/private-reset', (req, res) => {
+  const user = verifyToken(req);
+  if (!user) return res.status(401).json({ error: 'Unauthorized' });
+  const { code } = req.body;
+  const room = rooms.get(code?.toUpperCase());
+  if (!room) return res.status(404).json({ error: 'Room not found' });
+  const isP1 = room.p1?.userId === user.uid;
+  const isP2 = room.p2?.userId === user.uid;
+  if (!isP1 && !isP2) return res.status(403).json({ error: 'Not in this room' });
+  if (room.phase !== 'game_over') return res.status(400).json({ error: 'Game not over' });
+  clearTimeout(room.roundTimer);
+  clearTimeout(room.advanceTimer);
+  room.p1.hp = 100; room.p2.hp = 100;
+  room.p1.entity = null; room.p2.entity = null;
+  room.p1.ready = false; room.p2.ready = false;
+  room.p1.entityHidden = true; room.p2.entityHidden = true;
+  room.currentRound = 0;
+  room.battleLog = [];
+  room.genre = null;
+  room.phase = 'genre_select';
+  res.json({ success: true });
 });
 
 // --- Game: Submit Entity ---

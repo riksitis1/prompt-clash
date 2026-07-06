@@ -499,7 +499,7 @@
       <button onclick="cancelMatch()" class="px-6 py-2 rounded-xl btn-danger text-sm mt-2">Cancel</button>
     </div>
 
-    <!-- SCREEN: WAITING ROOM -->
+    <!-- SCREEN: WAITING ROOM (public matchmaking) -->
     <div id="screen-waiting-room" class="screen flex-1 flex flex-col items-center justify-center gap-6 p-4">
       <div class="animate-fade-in-up flex flex-col items-center gap-3">
         <div class="text-5xl" style="filter: drop-shadow(0 0 30px rgba(99,102,241,0.2));"><span id="waiting-icon" class="waiting-spin">⏳</span></div>
@@ -525,6 +525,62 @@
       </div>
       <div id="waiting-players" class="text-indigo-300/50 text-xs animate-fade-in-up" style="animation-delay: 0.25s;">Waiting for opponent to join...</div>
       <button onclick="leaveRoom()" class="px-6 py-2 rounded-xl btn-danger text-sm mt-2">Leave Room</button>
+    </div>
+
+    <!-- SCREEN: PRIVATE LOBBY -->
+    <div id="screen-private-lobby" class="screen flex-1 flex flex-col items-center justify-center p-6">
+      <div class="w-full max-w-md flex flex-col gap-5">
+        <div class="text-center animate-fade-in-up">
+          <div class="text-xs text-indigo-300/60 font-medium uppercase tracking-widest mb-1">Room Code</div>
+          <div class="text-2xl font-bold font-mono tracking-[0.2em] text-indigo-200"><span id="pl-room-code">????</span></div>
+        </div>
+        <div class="flex gap-10 items-center justify-center animate-fade-in-up" style="animation-delay: 0.1s;">
+          <div class="flex flex-col items-center gap-2">
+            <div id="pl-p1-avatar" class="letter-avatar w-16 h-16 text-xl pulse-glow" style="background: #6366f1;">?</div>
+            <div id="pl-p1-name" class="text-sm text-indigo-200 font-semibold">You</div>
+          </div>
+          <div class="flex flex-col items-center gap-1">
+            <div class="text-lg font-black text-gray-500 tracking-wider">VS</div>
+          </div>
+          <div class="flex flex-col items-center gap-2">
+            <div id="pl-p2-avatar" class="letter-avatar w-16 h-16 text-xl" style="background: rgba(55,55,95,0.8); border: 2px dashed rgba(99,102,241,0.25);">?</div>
+            <div id="pl-p2-name" class="text-sm text-indigo-300/60 font-medium">Waiting...</div>
+          </div>
+        </div>
+        <div class="animate-fade-in-up" style="animation-delay: 0.15s;">
+          <div class="text-xs text-indigo-300/60 font-medium uppercase tracking-widest text-center mb-3">Battle Genre</div>
+          <div id="pl-genre-grid" class="genre-grid grid grid-cols-3 gap-2 w-full">
+            <div class="genre-card" data-genre="Animals" onclick="selectPrivateGenre(this)">🦁 Animals</div>
+            <div class="genre-card" data-genre="Machines" onclick="selectPrivateGenre(this)">⚙️ Machines</div>
+            <div class="genre-card" data-genre="Mythical Creatures" onclick="selectPrivateGenre(this)">🐉 Mythical</div>
+            <div class="genre-card" data-genre="Elements" onclick="selectPrivateGenre(this)">🔥 Elements</div>
+            <div class="genre-card" data-genre="Cosmic" onclick="selectPrivateGenre(this)">🌌 Cosmic</div>
+            <div class="genre-card" data-genre="Fantasy" onclick="selectPrivateGenre(this)">🧙 Fantasy</div>
+            <div class="genre-card" data-genre="Sci-Fi" onclick="selectPrivateGenre(this)">🚀 Sci-Fi</div>
+            <div class="genre-card" data-genre="Food" onclick="selectPrivateGenre(this)">🍔 Food</div>
+            <div class="genre-card" data-genre="Sports" onclick="selectPrivateGenre(this)">⚽ Sports</div>
+            <div class="genre-card" data-genre="Nature" onclick="selectPrivateGenre(this)">🌿 Nature</div>
+            <div class="genre-card" data-genre="Magic" onclick="selectPrivateGenre(this)">🔮 Magic</div>
+            <div class="genre-card" data-genre="Technology" onclick="selectPrivateGenre(this)">💻 Tech</div>
+            <div class="genre-card" data-genre="Underwater" onclick="selectPrivateGenre(this)">🐠 Underwater</div>
+            <div class="genre-card" data-genre="Dinosaurs" onclick="selectPrivateGenre(this)">🦕 Dinosaurs</div>
+            <div class="genre-card" data-genre="Superheroes" onclick="selectPrivateGenre(this)">🦸 Heroes</div>
+            <div class="genre-card" data-genre="Weather" onclick="selectPrivateGenre(this)">⛈️ Weather</div>
+            <div class="genre-card" data-genre="Robots" onclick="selectPrivateGenre(this)">🤖 Robots</div>
+            <div class="genre-card" data-genre="Crystals & Gems" onclick="selectPrivateGenre(this)">💎 Gems</div>
+            <div class="genre-card" data-genre="Insects" onclick="selectPrivateGenre(this)">🐛 Insects</div>
+            <div class="genre-card" data-genre="Cars & Vehicles" onclick="selectPrivateGenre(this)">🚗 Vehicles</div>
+            <div class="genre-card" data-genre="Random" onclick="selectPrivateGenre(this)">🎲 Random</div>
+          </div>
+          <div id="pl-genre-picked" class="hidden text-center py-4">
+            <div class="text-sm text-indigo-300/80">Genre: <span id="pl-genre-display" class="font-bold text-indigo-200"></span></div>
+          </div>
+        </div>
+        <div id="pl-actions" class="flex items-center gap-3 animate-fade-in-up" style="animation-delay: 0.2s;">
+          <button onclick="leaveRoom()" class="px-3 py-3 rounded-xl text-sm font-medium transition-all" style="color: rgba(156,163,175,0.5);" onmouseover="this.style.color='rgba(156,163,175,0.8)'" onmouseout="this.style.color='rgba(156,163,175,0.5)'">← Leave</button>
+          <button id="pl-start-btn" onclick="startPrivateGame()" class="flex-1 px-12 py-3.5 rounded-xl btn-primary text-base font-bold tracking-wide" disabled>Start Game</button>
+        </div>
+      </div>
     </div>
 
     <!-- SCREEN: GENRE SELECT (P1) -->
@@ -691,7 +747,7 @@
         <div id="gameover-title" class="text-3xl font-extrabold tracking-tight" style="background: linear-gradient(135deg, #818cf8 0%, #c4b5fd 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;"></div>
       </div>
       <div id="gameover-details" class="text-gray-400 text-center max-w-sm leading-relaxed text-sm animate-fade-in-up" style="animation-delay: 0.15s;"></div>
-      <button onclick="backToLobby()" class="px-10 py-3.5 rounded-xl btn-primary text-base font-bold tracking-wide animate-fade-in-up" style="animation-delay: 0.25s;">Back to Lobby</button>
+      <button id="gameover-btn" onclick="backToLobby()" class="px-10 py-3.5 rounded-xl btn-primary text-base font-bold tracking-wide animate-fade-in-up" style="animation-delay: 0.25s;">Back to Lobby</button>
     </div>
   </div>
 
@@ -988,12 +1044,13 @@
       if (!res.ok) return;
       const data = await res.json();
       roomCode = data.roomCode;
-      const rc = document.getElementById('private-room-code');
-      document.getElementById('private-room-code-value').textContent = roomCode;
-      rc.classList.remove('hidden');
-      showScreen('screen-waiting-room');
-      document.getElementById('waiting-room-code').textContent = roomCode;
-      updateWaitingRoom();
+      document.getElementById('pl-room-code').textContent = roomCode;
+      selectedGenre = null;
+      document.querySelectorAll('.genre-card').forEach(c => c.classList.remove('selected'));
+      document.getElementById('pl-start-btn').disabled = true;
+      document.getElementById('pl-genre-grid').classList.remove('hidden');
+      document.getElementById('pl-genre-picked').classList.add('hidden');
+      showScreen('screen-private-lobby');
       startPolling();
     }
 
@@ -1013,9 +1070,7 @@
         return;
       }
       roomCode = code;
-      showScreen('screen-waiting-room');
-      document.getElementById('waiting-room-code').textContent = roomCode;
-      updateWaitingRoom();
+      showScreen('screen-private-lobby');
       startPolling();
     }
 
@@ -1061,6 +1116,86 @@
           document.getElementById('waiting-players').textContent = 'Waiting for opponent to join...';
         }
       } catch {}
+    }
+
+    function updatePrivateLobby(state) {
+      if (!state) return;
+      const p1Avatar = document.getElementById('pl-p1-avatar');
+      const p2Avatar = document.getElementById('pl-p2-avatar');
+      if (state.me) {
+        p1Avatar.textContent = (state.me.username || '?').charAt(0).toUpperCase();
+        p1Avatar.style.backgroundColor = state.me.avatarColor || '#6366f1';
+        document.getElementById('pl-p1-name').textContent = state.me.username || 'You';
+      }
+      if (state.opponent) {
+        p2Avatar.textContent = (state.opponent.username || '?').charAt(0).toUpperCase();
+        p2Avatar.style.backgroundColor = state.opponent.avatarColor || '#6366f1';
+        p2Avatar.style.border = 'none';
+        p2Avatar.classList.remove('pulse-glow');
+        document.getElementById('pl-p2-name').textContent = state.opponent.username || 'Opponent';
+      } else {
+        p2Avatar.textContent = '?';
+        p2Avatar.style.backgroundColor = 'rgba(55,55,95,0.8)';
+        p2Avatar.style.border = '2px dashed rgba(99,102,241,0.25)';
+        p2Avatar.classList.add('pulse-glow');
+        document.getElementById('pl-p2-name').textContent = 'Waiting...';
+      }
+      if (state.genre) {
+        document.getElementById('pl-genre-grid').classList.add('hidden');
+        document.getElementById('pl-genre-picked').classList.remove('hidden');
+        document.getElementById('pl-genre-display').textContent = state.genre;
+      }
+      const isP1 = state.me && state.me.side === 'p1';
+      if (isP1) {
+        document.getElementById('pl-genre-grid').classList.remove('hidden');
+        document.getElementById('pl-genre-picked').classList.add('hidden');
+        if (state.opponent && selectedGenre) {
+          document.getElementById('pl-start-btn').disabled = false;
+        } else {
+          document.getElementById('pl-start-btn').disabled = true;
+        }
+      }
+    }
+
+    function selectPrivateGenre(el) {
+      document.querySelectorAll('#pl-genre-grid .genre-card').forEach(c => c.classList.remove('selected'));
+      el.classList.add('selected');
+      selectedGenre = el.dataset.genre;
+      const p2Joined = document.getElementById('pl-p2-name').textContent !== 'Waiting...';
+      document.getElementById('pl-start-btn').disabled = !p2Joined;
+      let genre = selectedGenre;
+      if (genre === 'Random') {
+        fetch('/api/random-genre').then(r => r.json()).then(data => {
+          genre = data.genre;
+          selectedGenre = genre;
+          lockPrivateGenre(genre);
+        });
+        return;
+      }
+      lockPrivateGenre(genre);
+    }
+
+    async function lockPrivateGenre(genre) {
+      const token = await getToken();
+      if (!token) return;
+      await fetch('/api/lock-genre', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: roomCode, genre })
+      });
+    }
+
+    async function startPrivateGame() {
+      const token = await getToken();
+      if (!token) return;
+      const btn = document.getElementById('pl-start-btn');
+      btn.disabled = true;
+      btn.textContent = 'Starting...';
+      await fetch('/api/start-game', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: roomCode })
+      });
     }
 
     async function leaveRoom() {
@@ -1126,6 +1261,9 @@
             'active')) {
           updateWaitingRoom();
         }
+        if (document.getElementById('screen-private-lobby').classList.contains('active')) {
+          updatePrivateLobby(state);
+        }
       }
 
       if (phase !== lastPhase) {
@@ -1163,12 +1301,19 @@
         case 'genre_select':
           selectedGenre = null;
           document.querySelectorAll('.genre-card').forEach(c => c.classList.remove('selected'));
-          document.getElementById('lock-genre-btn').disabled = true;
-          document.getElementById('genre-grid').classList.remove('hidden');
-          document.getElementById('genre-loading').classList.add('hidden');
-          document.getElementById('genre-actions').classList.remove('hidden');
-          if (state.me && state.me.side === 'p1') {
+          document.getElementById('pl-start-btn').disabled = true;
+          document.getElementById('pl-genre-grid').classList.remove('hidden');
+          document.getElementById('pl-genre-picked').classList.add('hidden');
+          if (state.type === 'private') {
+            document.getElementById('pl-room-code').textContent = roomCode;
+            showScreen('screen-private-lobby');
+            updatePrivateLobby(state);
+          } else if (state.me && state.me.side === 'p1') {
             showScreen('screen-genre');
+            document.getElementById('lock-genre-btn').disabled = true;
+            document.getElementById('genre-grid').classList.remove('hidden');
+            document.getElementById('genre-loading').classList.add('hidden');
+            document.getElementById('genre-actions').classList.remove('hidden');
           } else {
             showScreen('screen-waiting-genre');
           }
@@ -1658,6 +1803,29 @@
         }
       }
       document.getElementById('gameover-details').innerHTML = details;
+      const isPrivate = state.type === 'private';
+      const btn = document.getElementById('gameover-btn');
+      if (isPrivate) {
+        btn.textContent = 'Back to Room';
+        btn.onclick = privateReset;
+      } else {
+        btn.textContent = 'Back to Lobby';
+        btn.onclick = backToLobby;
+      }
+    }
+
+    async function privateReset() {
+      const token = await getToken();
+      if (!token || !roomCode) return;
+      await fetch('/api/private-reset', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: roomCode })
+      });
+      lastPhase = null;
+      isAnimating = false;
+      pendingGameOverState = null;
+      startPolling();
     }
 
     async function backToLobby() {
