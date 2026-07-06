@@ -989,6 +989,7 @@
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` }
       });
+      if (!res.ok) { setLoading(btn, false); return; }
       const data = await res.json();
       setLoading(btn, false);
       if (!data.roomCode) return;
