@@ -1234,6 +1234,18 @@
         btn.textContent = 'Start Game';
         return;
       }
+      lastPhase = 'submitting';
+      showScreen('screen-battle');
+      document.getElementById('battle-round').textContent = '1';
+      document.getElementById('battle-genre').textContent = selectedGenre || '???';
+      turnStartTime = Date.now();
+      const pSide = playerSide || 'p1';
+      document.getElementById(`battle-${pSide}-input`).value = '';
+      document.getElementById('arena-emoji-p1').textContent = '❓';
+      document.getElementById('arena-emoji-p2').textContent = '❓';
+      document.getElementById('arena-entity-p1').textContent = '';
+      document.getElementById('arena-entity-p2').textContent = '';
+      document.getElementById('battle-countdown').textContent = '30s';
       pollGameState();
     }
 
@@ -1286,7 +1298,7 @@
         }
         const state = await res.json();
         handleState(state);
-      } catch {}
+      } catch (e) { console.error('poll error', e); }
     }
 
     function handleState(state) {
@@ -1301,7 +1313,7 @@
           updateWaitingRoom();
         }
         if (document.getElementById('screen-private-lobby').classList.contains('active')) {
-          updatePrivateLobby(state);
+          try { updatePrivateLobby(state); } catch (e) { console.error('private lobby update error', e); }
         }
       }
 
@@ -1876,8 +1888,8 @@
             headers: { Authorization: `Bearer ${token}` }
           });
           if (res.ok) currentProfile = await res.json();
-        } catch {}
-      }
+      } catch (e) { console.error('poll error', e); }
+    }
       roomCode = null;
       lastPhase = null;
       lastLogLen = 0;
