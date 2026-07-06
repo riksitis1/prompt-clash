@@ -1474,17 +1474,37 @@
     // ============================================================
     // COUNTDOWN
     // ============================================================
-    let countdownElapsed = 0;
+    let countdownSeconds = 30;
     function updateCountdown(state) {
       if (state.timeRemaining !== undefined) {
-        countdownElapsed = 30 - state.timeRemaining;
+        countdownSeconds = state.timeRemaining;
       } else if (!state.turnStartTime) return;
-      const serverElapsed = state.timeRemaining !== undefined ? 30 - state.timeRemaining : (Date.now() - state.turnStartTime) / 1000;
-      const sincePoll = (Date.now() - (state.serverTime || Date.now())) / 1000;
-      const remaining = Math.max(0, Math.ceil(30 - serverElapsed - Math.min(2, sincePoll)));
+      else {
+        const serverElapsed = (Date.now() - state.turnStartTime) / 1000;
+        countdownSeconds = Math.max(0, 30 - Math.round(serverElapsed));
+      }
+      renderCountdown();
+      startCountdownTick();
+    }
+
+    function startCountdownTick() {
+      if (countdownInterval) clearInterval(countdownInterval);
+      countdownInterval = setInterval(() => {
+        countdownSeconds--;
+        if (countdownSeconds < 0) countdownSeconds = 0;
+        renderCountdown();
+        if (countdownSeconds <= 0) {
+          clearInterval(countdownInterval);
+          countdownInterval = null;
+        }
+      }, 1000);
+    }
+
+    function renderCountdown() {
       const el = document.getElementById('battle-countdown');
-      el.textContent = remaining + 's';
-      el.style.color = remaining <= 5 ? '#ef4444' : remaining <= 10 ? '#f59e0b' : '';
+      if (!el) return;
+      el.textContent = countdownSeconds + 's';
+      el.style.color = countdownSeconds <= 5 ? '#ef4444' : countdownSeconds <= 10 ? '#f59e0b' : '';
     }
 
     // ============================================================
