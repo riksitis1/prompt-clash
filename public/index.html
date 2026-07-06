@@ -91,10 +91,11 @@
     }
     .btn-primary:active { transform: translateY(0); }
     .btn-primary:disabled {
-      opacity: 0.4;
+      opacity: 0.25;
       cursor: not-allowed;
       transform: none;
       box-shadow: none;
+      background: rgba(55, 55, 95, 0.5);
     }
 
     .btn-secondary {
@@ -372,14 +373,16 @@
       font-size: 0.9rem;
     }
     .genre-card:hover {
-      background: rgba(99, 102, 241, 0.12);
-      border-color: rgba(99, 102, 241, 0.25);
-      transform: translateY(-1px);
+      background: rgba(99, 102, 241, 0.15);
+      border-color: rgba(99, 102, 241, 0.35);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 16px rgba(99, 102, 241, 0.12);
     }
     .genre-card.selected {
-      background: rgba(99, 102, 241, 0.18);
-      border-color: rgba(99, 102, 241, 0.4);
-      box-shadow: 0 0 20px rgba(99, 102, 241, 0.1);
+      background: rgba(99, 102, 241, 0.25);
+      border-color: #818cf8;
+      box-shadow: 0 0 24px rgba(99, 102, 241, 0.2), inset 0 0 20px rgba(99, 102, 241, 0.05);
+      transform: translateY(-1px);
     }
 
     /* Mobile responsive */
@@ -529,9 +532,9 @@
       <div class="text-center animate-fade-in-up">
         <div class="text-4xl mb-2" style="filter: drop-shadow(0 0 30px rgba(99,102,241,0.2));">🎯</div>
         <h2 class="text-xl font-extrabold tracking-tight" style="background: linear-gradient(135deg, #818cf8 0%, #c4b5fd 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">Choose the Battle Genre</h2>
-        <p class="text-gray-500 text-sm mt-1">Pick the category for this battle</p>
+        <p class="text-indigo-300/60 text-sm mt-1">Pick the category for this battle</p>
       </div>
-      <div class="genre-grid grid grid-cols-3 gap-2 w-full max-w-lg animate-fade-in-up" style="animation-delay: 0.1s;">
+      <div id="genre-grid" class="genre-grid grid grid-cols-3 gap-2 w-full max-w-lg animate-fade-in-up" style="animation-delay: 0.1s;">
         <div class="genre-card" data-genre="Animals" onclick="selectGenre(this)">🦁 Animals</div>
         <div class="genre-card" data-genre="Machines" onclick="selectGenre(this)">⚙️ Machines</div>
         <div class="genre-card" data-genre="Mythical Creatures" onclick="selectGenre(this)">🐉 Mythical</div>
@@ -554,8 +557,12 @@
         <div class="genre-card" data-genre="Cars & Vehicles" onclick="selectGenre(this)">🚗 Vehicles</div>
         <div class="genre-card" data-genre="Random" onclick="selectGenre(this)">🎲 Random</div>
       </div>
-      <div class="flex items-center gap-3 animate-fade-in-up" style="animation-delay: 0.2s;">
-        <button onclick="leaveRoom()" class="px-4 py-3 rounded-xl btn-danger text-sm font-medium">← Back</button>
+      <div id="genre-loading" class="hidden flex-col items-center gap-4 py-8">
+        <div class="text-5xl waiting-spin">🎲</div>
+        <div class="text-indigo-300/80 text-sm font-semibold">Locking in genre...</div>
+      </div>
+      <div id="genre-actions" class="flex items-center gap-3 animate-fade-in-up" style="animation-delay: 0.2s;">
+        <button onclick="leaveRoom()" class="px-3 py-3 rounded-xl text-sm font-medium transition-all" style="color: rgba(156, 163, 175, 0.5);" onmouseover="this.style.color='rgba(156,163,175,0.8)'" onmouseout="this.style.color='rgba(156,163,175,0.5)'">← Back</button>
         <button id="lock-genre-btn" onclick="lockGenre()" class="flex-1 px-12 py-3.5 rounded-xl btn-primary text-base font-bold tracking-wide" disabled>Lock In Genre</button>
       </div>
 
@@ -1157,6 +1164,9 @@
           selectedGenre = null;
           document.querySelectorAll('.genre-card').forEach(c => c.classList.remove('selected'));
           document.getElementById('lock-genre-btn').disabled = true;
+          document.getElementById('genre-grid').classList.remove('hidden');
+          document.getElementById('genre-loading').classList.add('hidden');
+          document.getElementById('genre-actions').classList.remove('hidden');
           if (state.me && state.me.side === 'p1') {
             showScreen('screen-genre');
           } else {
@@ -1416,8 +1426,9 @@
       }
       const token = await getToken();
       if (!token) return;
-      const btn = document.getElementById('lock-genre-btn');
-      setLoading(btn, true);
+      document.getElementById('genre-grid').classList.add('hidden');
+      document.getElementById('genre-loading').classList.remove('hidden');
+      document.getElementById('genre-actions').classList.add('hidden');
       await fetch('/api/lock-genre', {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
