@@ -626,6 +626,7 @@
         <button onclick="leaveRoom()" class="px-3 py-3 rounded-xl text-sm font-medium transition-all" style="color: rgba(156, 163, 175, 0.5);" onmouseover="this.style.color='rgba(156,163,175,0.8)'" onmouseout="this.style.color='rgba(156,163,175,0.5)'">← Back</button>
         <button id="lock-genre-btn" onclick="lockGenre()" class="flex-1 px-12 py-3.5 rounded-xl btn-primary text-base font-bold tracking-wide" disabled>Lock In Genre</button>
       </div>
+    </div>
 
     <!-- SCREEN: WAITING GENRE (P2) -->
     <div id="screen-waiting-genre" class="screen flex-1 flex flex-col items-center justify-center gap-5">
@@ -754,7 +755,6 @@
       <div id="gameover-details" class="text-gray-400 text-center max-w-sm leading-relaxed text-sm animate-fade-in-up" style="animation-delay: 0.15s;"></div>
       <button id="gameover-btn" onclick="backToLobby()" class="px-10 py-3.5 rounded-xl btn-primary text-base font-bold tracking-wide animate-fade-in-up" style="animation-delay: 0.25s;">Back to Lobby</button>
     </div>
-  </div>
 
   <script>
     // ============================================================
@@ -777,10 +777,16 @@
     // UTILITY
     // ============================================================
     function showScreen(id) {
-      console.log('SHOWSCREEN:', id);
+      console.log('SHOWSCREEN:', id, 'PREV_ACTIVE:', document.querySelector('.screen.active')?.id);
       document.querySelectorAll('.screen').forEach(s => { s.style.display = 'none'; s.classList.remove('active'); });
       const el = document.getElementById(id);
-      if (el) { el.style.display = 'flex'; el.classList.add('active'); }
+      if (el) {
+        el.style.display = 'flex';
+        el.classList.add('active');
+        console.log('SHOWSCREEN OK:', id, 'children:', el.children.length, 'htmlLen:', el.innerHTML.length, 'offsetH:', el.offsetHeight, 'offsetW:', el.offsetWidth);
+      } else {
+        console.log('SHOWSCREEN MISSING:', id);
+      }
     }
 
     function getToken() { return currentToken; }
@@ -1309,6 +1315,8 @@
       const phase = state.phase;
       if (state.me) playerSide = state.me.side;
 
+      console.log('HANDLE_STATE:', phase, 'lastPhase:', lastPhase, 'opp:', !!state.opponent, 'round:', state.currentRound);
+
       if (phase === 'genre_select' || phase === 'submitting' || phase === 'resolving' ||
         phase === 'round_result' || phase === 'game_over') {
         if (state.opponent && document.getElementById('screen-waiting-room').classList.contains(
@@ -1321,6 +1329,7 @@
       }
 
       if (phase !== lastPhase) {
+        console.log('PHASE_CHANGE:', lastPhase, '->', phase);
         lastPhase = phase;
         onPhaseChange(state);
       }
@@ -1385,6 +1394,13 @@
           document.getElementById('arena-emoji-p2').textContent = '❓';
           document.getElementById('arena-entity-p1').textContent = '';
           document.getElementById('arena-entity-p2').textContent = '';
+          {
+            const el = document.getElementById('screen-battle');
+            if (el) {
+              const cs = getComputedStyle(el);
+              console.log('BATTLE_SCREEN_CSS:', { display: cs.display, opacity: cs.opacity, height: cs.height, minHeight: cs.minHeight, overflow: cs.overflow, flex: cs.flex, transform: cs.transform });
+            }
+          }
           break;
         case 'round_result':
           break;
