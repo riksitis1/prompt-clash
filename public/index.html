@@ -411,7 +411,7 @@
   </style>
 </head>
 <body>
-  <div id="app" class="flex flex-col" style="height:100vh;">
+  <div id="app" style="height:100vh; display:flex; flex-direction:column;">
     <!-- NAV -->
     <nav class="px-5 py-3 flex items-center justify-between shrink-0 rounded-none border-0" style="background: rgba(7, 7, 15, 0.95); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-bottom: 1px solid rgba(99, 102, 241, 0.06);">
       <h1 class="text-lg font-extrabold tracking-tight" style="background: linear-gradient(135deg, #818cf8 0%, #c4b5fd 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">⚔️ Prompt Clash</h1>
@@ -637,7 +637,7 @@
     </div>
 
     <!-- SCREEN: BATTLE -->
-    <div id="screen-battle" class="screen flex flex-col p-3 gap-3" style="flex:1 1 0%; min-height:0;">
+    <div id="screen-battle" class="screen p-3 gap-3" style="flex:1 1 0%; min-height:0; display:flex; flex-direction:column; width:100%;">
       <div class="flex items-center justify-between text-xs px-3 py-2 rounded-xl shrink-0" style="background: rgba(20, 20, 50, 0.4); backdrop-filter: blur(8px); border: 1px solid rgba(99, 102, 241, 0.05);">
         <span class="font-bold tracking-wide" style="background: linear-gradient(135deg, #818cf8, #c4b5fd); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">⚔️ <span id="battle-genre">???</span></span>
         <span class="flex items-center gap-3">
@@ -650,7 +650,7 @@
         <button id="btn-resign" onclick="resignBattle()" class="text-xs font-medium px-2.5 py-1.5 rounded-lg transition-all" style="color: rgba(239, 68, 68, 0.6); background: rgba(239, 68, 68, 0.06); border: 1px solid rgba(239, 68, 68, 0.08);" onmouseover="this.style.background='rgba(239,68,68,0.12)'; this.style.color='#ef4444'" onmouseout="this.style.background='rgba(239,68,68,0.06)'; this.style.color='rgba(239,68,68,0.6)'">✋ Resign</button>
       </div>
 
-      <div class="battle-main flex items-stretch gap-3" style="flex:1 1 0%; min-height:0;">
+      <div class="battle-main items-stretch gap-3" style="flex:1 1 0%; min-height:0; display:flex;">
         <!-- P1 Side -->
         <div class="player-side flex flex-col items-center justify-between glass-panel rounded-2xl p-4" style="flex:1 1 0%; min-width:0; box-shadow: 0 4px 24px rgba(0,0,0,0.2);">
           <div class="player-avatar-section flex flex-col items-center gap-1.5 shrink-0">
@@ -660,7 +660,7 @@
               <div id="battle-p1-elo" class="text-xs text-indigo-300/70"></div>
             </div>
           </div>
-          <div class="player-input-section w-full flex-1 flex flex-col justify-center gap-2">
+          <div class="player-input-section justify-center gap-2" style="width:100%; flex:1 1 0%; display:flex; flex-direction:column;">
             <div id="battle-p1-input-area" class="text-center">
               <input id="battle-p1-input" type="text" placeholder="Your entity..." class="w-full px-3 py-3 rounded-xl border text-white glow-border outline-none text-center text-sm" style="background: rgba(10,10,24,0.7); border-color: rgba(99,102,241,0.3); color:#fff; --tw-placeholder-color:#9ca3af;">
               <button id="battle-p1-submit" onclick="submitEntity()" class="mt-2 w-full py-2.5 rounded-xl btn-primary text-sm font-bold tracking-wide">Submit</button>
@@ -709,7 +709,7 @@
               <div id="battle-p2-elo" class="text-xs text-indigo-300/70"></div>
             </div>
           </div>
-          <div class="player-input-section w-full flex-1 flex flex-col justify-center gap-2">
+          <div class="player-input-section justify-center gap-2" style="width:100%; flex:1 1 0%; display:flex; flex-direction:column;">
             <div id="battle-p2-input-area" class="text-center">
               <input id="battle-p2-input" type="text" placeholder="Your entity..." class="w-full px-3 py-3 rounded-xl border text-white glow-border outline-none text-center text-sm" style="background: rgba(10,10,24,0.7); border-color: rgba(99,102,241,0.3);" disabled>
               <button id="battle-p2-submit" onclick="submitEntity()" class="mt-2 w-full py-2.5 rounded-xl btn-primary text-sm font-bold tracking-wide hidden">Submit</button>
