@@ -778,9 +778,17 @@
     // ============================================================
     function showScreen(id) {
       console.log('SHOWSCREEN:', id);
-      document.querySelectorAll('.screen').forEach(s => { s.style.display = 'none'; s.classList.remove('active'); });
+      document.querySelectorAll('.screen').forEach(s => {
+        s.style.display = 'none'; s.style.opacity = ''; s.style.transform = ''; s.classList.remove('active');
+      });
       const el = document.getElementById(id);
-      if (el) { el.style.display = 'flex'; void el.offsetWidth; el.classList.add('active'); }
+      if (el) {
+        el.style.display = 'flex';
+        void el.offsetHeight;
+        el.classList.add('active');
+        el.style.opacity = '1';
+        el.style.transform = 'translateY(0)';
+      }
       else { console.log('SHOWSCREEN: element not found:', id); }
     }
 
