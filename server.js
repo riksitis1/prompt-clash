@@ -486,9 +486,9 @@ Return ONLY valid JSON (no markdown, no extra text). This will be parsed program
    "description": "1 punchy sentence (8-15 words) describing the action"
 }
 	
-CRITICAL RULES (follow strictly):
+CRITICAL RULES (follow strictly in this order):
+- 🔴 GENRE CHECK — THIS IS THE MOST IMPORTANT RULE: Each entity MUST belong to the "${genre}" genre. If ANY entity is NOT a member of the "${genre}" category, IMMEDIATELY DISQUALIFY that player (40 damage, 0 counter-damage, they lose). Examples: "dog" is NOT an insect → disqualified. "car" is NOT an animal → disqualified. "laser gun" is NOT nature → disqualified. "pizza" is NOT a machine → disqualified. The genre is "${genre}" — if an entity doesn't fit, disqualify without hesitation. Do NOT compare power between entities that don't match the genre — just disqualify the mismatched one. If BOTH don't match the genre, it's a tie at 0 damage with a dismissive description.
 - GIBBERISH: If an entry is nonsense, made-up words (e.g. "blargle fargle", "zorp glorp", "dooper snooper"), random keyboard spam ("asdfghjkl"), or a phrase with 3+ rhyming silly words, DISQUALIFY that player: they take 40 damage, deal 0 counter-damage, lose, and the description is humorously dismissive. Even ONE real word mixed with nonsense is STILL gibberish.
-- GENRE CHECK: If an entity does NOT clearly belong to the "${genre}" genre, DISQUALIFY that player: they take 40 damage, deal 0 counter-damage, lose, and the description is humorously dismissive. Correct genre is mandatory.
 - INAPPROPRIATE: If an entry contains sexual, hateful, extremely violent, or NSFW content, IMMEDIATELY DISQUALIFY that player: they take 40 damage, deal 0 counter-damage, lose, emoji is "🔞", and description says "submission was inappropriate and removed" — NEVER describe the content itself.
 - TIES: If both entities are equally matched (same power level, identical, or neither clearly beats the other), set winner to "tie", damage 0, counterDamage 0.
 - POWER COMPARISON: Use real-world logic, size, destructive capability, weapons, armor, and genre context. Compare ESTABLISHED power levels of named characters (e.g. Optimus Prime > sports car, T-Rex > chicken, laser cannon > deer). Prefixes like "super", "mega", "ultra", "hyper" on a normal thing (e.g. "super car") do NOT drastically increase power. A god-level entity (Zeus) beats a mortal (soldier) but the mortal can do ~5 counter-damage. Think step by step: who realistically wins, and by how much?
@@ -504,7 +504,7 @@ CRITICAL RULES (follow strictly):
         const completion = await openai.chat.completions.create({
           model: 'llama-3.1-8b-instant',
           messages: [
-            { role: 'system', content: 'You are a strict AI battle judge. Always respond in valid JSON only. Keep descriptions short but vivid (8-15 words, 1 sentence). No stories, no markdown.' },
+            { role: 'system', content: 'You are a strict AI battle judge. The most important rule is GENRE CHECK — disqualify any entity that does not belong to the specified genre. Always respond in valid JSON only. Keep descriptions short but vivid (8-15 words, 1 sentence). No stories, no markdown.' },
             { role: 'user', content: prompt }
           ],
           response_format: { type: 'json_object' }
