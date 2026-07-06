@@ -411,7 +411,7 @@
   </style>
 </head>
 <body>
-  <div id="app" style="height:100vh; display:flex; flex-direction:column;">
+  <div id="app" style="height:100vh; display:flex; flex-direction:column; overflow:hidden;">
     <!-- NAV -->
     <nav class="px-5 py-3 flex items-center justify-between shrink-0 rounded-none border-0" style="background: rgba(7, 7, 15, 0.95); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-bottom: 1px solid rgba(99, 102, 241, 0.06);">
       <h1 class="text-lg font-extrabold tracking-tight" style="background: linear-gradient(135deg, #818cf8 0%, #c4b5fd 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">⚔️ Prompt Clash</h1>
@@ -637,7 +637,7 @@
     </div>
 
     <!-- SCREEN: BATTLE -->
-    <div id="screen-battle" class="screen p-3 gap-3" style="flex:1 1 0%; min-height:0; display:flex; flex-direction:column; width:100%;">
+    <div id="screen-battle" class="screen p-3 gap-3" style="flex:1 1 0%; display:flex; flex-direction:column; width:100%; height:100%; overflow-y:auto;">
       <div class="flex items-center justify-between text-xs px-3 py-2 rounded-xl shrink-0" style="background: rgba(20, 20, 50, 0.4); backdrop-filter: blur(8px); border: 1px solid rgba(99, 102, 241, 0.05);">
         <span class="font-bold tracking-wide" style="background: linear-gradient(135deg, #818cf8, #c4b5fd); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">⚔️ <span id="battle-genre">???</span></span>
         <span class="flex items-center gap-3">
@@ -785,6 +785,7 @@
       if (el) {
         el.style.display = 'flex';
         void el.offsetHeight;
+        void el.parentElement?.offsetHeight;
         el.classList.add('active');
         el.style.opacity = '1';
         el.style.transform = 'translateY(0)';
