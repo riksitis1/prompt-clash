@@ -379,10 +379,11 @@
       box-shadow: 0 4px 16px rgba(99, 102, 241, 0.12);
     }
     .genre-card.selected {
-      background: rgba(99, 102, 241, 0.25);
-      border-color: #818cf8;
-      box-shadow: 0 0 24px rgba(99, 102, 241, 0.2), inset 0 0 20px rgba(99, 102, 241, 0.05);
+      background: rgba(99, 102, 241, 0.35);
+      border-color: #a5b4fc;
+      box-shadow: 0 0 28px rgba(99, 102, 241, 0.3), inset 0 0 24px rgba(99, 102, 241, 0.08);
       transform: translateY(-1px);
+      color: #e0e7ff;
     }
 
     /* Mobile responsive */
@@ -531,8 +532,11 @@
     <div id="screen-private-lobby" class="screen flex-1 flex flex-col items-center justify-center p-6">
       <div class="w-full max-w-md flex flex-col gap-5">
         <div class="text-center animate-fade-in-up">
-          <div class="text-xs text-indigo-300/60 font-medium uppercase tracking-widest mb-1">Room Code</div>
-          <div class="text-2xl font-bold font-mono tracking-[0.2em] text-indigo-200"><span id="pl-room-code">????</span></div>
+          <div class="text-xs text-indigo-300/70 font-medium uppercase tracking-widest mb-1">Room Code</div>
+          <div id="pl-code-copy" onclick="copyRoomCode()" class="inline-flex items-center gap-2 cursor-pointer group">
+            <span class="text-2xl font-bold font-mono tracking-[0.2em] text-indigo-200" id="pl-room-code">????</span>
+            <span class="text-xs transition-all" style="color: rgba(99,102,241,0.4);" id="pl-copy-icon">📋</span>
+          </div>
         </div>
         <div class="flex gap-10 items-center justify-center animate-fade-in-up" style="animation-delay: 0.1s;">
           <div class="flex flex-col items-center gap-2">
@@ -544,11 +548,11 @@
           </div>
           <div class="flex flex-col items-center gap-2">
             <div id="pl-p2-avatar" class="letter-avatar w-16 h-16 text-xl" style="background: rgba(55,55,95,0.8); border: 2px dashed rgba(99,102,241,0.25);">?</div>
-            <div id="pl-p2-name" class="text-sm text-indigo-300/60 font-medium">Waiting...</div>
+            <div id="pl-p2-name" class="text-sm text-indigo-300/70 font-medium">Waiting...</div>
           </div>
         </div>
         <div class="animate-fade-in-up" style="animation-delay: 0.15s;">
-          <div class="text-xs text-indigo-300/60 font-medium uppercase tracking-widest text-center mb-3">Battle Genre</div>
+          <div class="text-xs text-indigo-300/70 font-medium uppercase tracking-widest text-center mb-3">Battle Genre</div>
           <div id="pl-genre-grid" class="genre-grid grid grid-cols-3 gap-2 w-full">
             <div class="genre-card" data-genre="Animals" onclick="selectPrivateGenre(this)">🦁 Animals</div>
             <div class="genre-card" data-genre="Machines" onclick="selectPrivateGenre(this)">⚙️ Machines</div>
@@ -576,12 +580,13 @@
             <div class="text-sm text-indigo-300/80">Genre: <span id="pl-genre-display" class="font-bold text-indigo-200"></span></div>
           </div>
         </div>
-        <div id="pl-actions" class="flex items-center gap-3 animate-fade-in-up" style="animation-delay: 0.2s;">
-          <button onclick="leaveRoom()" class="px-3 py-3 rounded-xl text-sm font-medium transition-all" style="color: rgba(156,163,175,0.5);" onmouseover="this.style.color='rgba(156,163,175,0.8)'" onmouseout="this.style.color='rgba(156,163,175,0.5)'">← Leave</button>
-          <button id="pl-start-btn" onclick="startPrivateGame()" class="flex-1 px-12 py-3.5 rounded-xl btn-primary text-base font-bold tracking-wide" disabled>Start Game</button>
-        </div>
+        <button id="pl-start-btn" onclick="startPrivateGame()" class="w-full py-4 rounded-xl btn-primary text-base font-bold tracking-wide animate-fade-in-up" style="animation-delay: 0.2s;" disabled>Start Game</button>
+        <button onclick="leaveRoom()" class="text-xs font-medium transition-all animate-fade-in-up text-center" style="animation-delay: 0.25s; color: rgba(156,163,175,0.4);" onmouseover="this.style.color='rgba(156,163,175,0.7)'" onmouseout="this.style.color='rgba(156,163,175,0.4)'">← Leave Room</button>
       </div>
     </div>
+
+    <!-- Toast -->
+    <div id="toast" class="fixed top-4 left-1/2 -translate-x-1/2 px-4 py-2 rounded-xl text-sm font-medium z-50 transition-all duration-300 pointer-events-none" style="background: rgba(16,185,129,0.15); border: 1px solid rgba(16,185,129,0.2); color: #6ee7b7; opacity: 0; transform: translate(-50%, -10px);">Copied!</div>
 
     <!-- SCREEN: GENRE SELECT (P1) -->
     <div id="screen-genre" class="screen flex-1 flex flex-col items-center justify-center gap-5 p-8">
@@ -1155,6 +1160,36 @@
           document.getElementById('pl-start-btn').disabled = true;
         }
       }
+    }
+
+    function showToast(msg) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.style.opacity = '1';
+      t.style.transform = 'translate(-50%, 0)';
+      setTimeout(() => {
+        t.style.opacity = '0';
+        t.style.transform = 'translate(-50%, -10px)';
+      }, 2000);
+    }
+
+    function copyRoomCode() {
+      const code = document.getElementById('pl-room-code').textContent;
+      navigator.clipboard.writeText(code).then(() => {
+        const icon = document.getElementById('pl-copy-icon');
+        icon.textContent = '✅';
+        showToast('Code copied!');
+        setTimeout(() => { icon.textContent = '📋'; }, 2000);
+      }).catch(() => {
+        // Fallback
+        const ta = document.createElement('textarea');
+        ta.value = code;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        ta.remove();
+        showToast('Code copied!');
+      });
     }
 
     function selectPrivateGenre(el) {
