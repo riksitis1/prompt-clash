@@ -1,7 +1,7 @@
 {
-  "name": "concept-battle-game",
+  "name": "prompt-clash",
   "version": "1.0.0",
-  "description": "Online 1v1 AI Concept Battle Game",
+  "description": "Online 1v1 AI Prompt Clash Game",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"

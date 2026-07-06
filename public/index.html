@@ -538,9 +538,12 @@
         <div class="genre-card" data-genre="Crystals & Gems" onclick="selectGenre(this)">💎 Gems</div>
         <div class="genre-card" data-genre="Insects" onclick="selectGenre(this)">🐛 Insects</div>
         <div class="genre-card" data-genre="Cars & Vehicles" onclick="selectGenre(this)">🚗 Vehicles</div>
+        <div class="genre-card" data-genre="Random" onclick="selectGenre(this)">🎲 Random</div>
       </div>
-      <button id="lock-genre-btn" onclick="lockGenre()" class="px-12 py-3.5 rounded-xl btn-primary text-base font-bold tracking-wide animate-fade-in-up" style="animation-delay: 0.2s;" disabled>Lock In Genre</button>
-    </div>
+      <div class="flex items-center gap-3 animate-fade-in-up" style="animation-delay: 0.2s;">
+        <button onclick="leaveRoom()" class="px-4 py-3 rounded-xl btn-danger text-sm font-medium">← Back</button>
+        <button id="lock-genre-btn" onclick="lockGenre()" class="flex-1 px-12 py-3.5 rounded-xl btn-primary text-base font-bold tracking-wide" disabled>Lock In Genre</button>
+      </div>
 
     <!-- SCREEN: WAITING GENRE (P2) -->
     <div id="screen-waiting-genre" class="screen flex-1 flex flex-col items-center justify-center gap-5">
@@ -1365,6 +1368,12 @@
     // ============================================================
     async function lockGenre() {
       if (!selectedGenre) return;
+      let genre = selectedGenre;
+      if (genre === 'Random') {
+        const res = await fetch('/api/random-genre');
+        const data = await res.json();
+        genre = data.genre;
+      }
       const token = await getToken();
       if (!token) return;
       const btn = document.getElementById('lock-genre-btn');
@@ -1372,7 +1381,7 @@
       await fetch('/api/lock-genre', {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: roomCode, genre: selectedGenre })
+        body: JSON.stringify({ code: roomCode, genre })
       });
     }
 

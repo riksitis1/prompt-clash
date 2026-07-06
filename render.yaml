@@ -2,7 +2,7 @@ services:
   - type: web
     name: prompt-clash
     runtime: node
-    repo: https://github.com/riksitis1/concept-battle-game
+    repo: https://github.com/riksitis1/prompt-clash
     plan: free
     region: oregon
     buildCommand: npm install
