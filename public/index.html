@@ -777,9 +777,11 @@
     // UTILITY
     // ============================================================
     function showScreen(id) {
+      console.log('SHOWSCREEN:', id);
       document.querySelectorAll('.screen').forEach(s => { s.style.display = 'none'; s.classList.remove('active'); });
       const el = document.getElementById(id);
       if (el) { el.style.display = 'flex'; requestAnimationFrame(() => el.classList.add('active')); }
+      else { console.log('SHOWSCREEN: element not found:', id); }
     }
 
     function getToken() { return currentToken; }
@@ -1227,23 +1229,28 @@
     }
 
     async function startPrivateGame() {
+      console.log('START: begin');
       const token = await getToken();
-      if (!token) return;
+      if (!token) { console.log('START: no token'); return; }
       const btn = document.getElementById('pl-start-btn');
       btn.disabled = true;
       btn.textContent = 'Starting...';
       try {
+        console.log('START: posting to /api/start-game');
         const res = await fetch('/api/start-game', {
           method: 'POST',
           headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
           body: JSON.stringify({ code: roomCode })
         });
+        console.log('START: response ok?', res.ok);
         if (!res.ok) {
           btn.disabled = false;
           btn.textContent = 'Start Game';
           return;
         }
+        console.log('START: calling pollGameState');
         await pollGameState();
+        console.log('START: done');
       } catch (e) {
         console.error('start error', e);
         btn.disabled = false;
@@ -1304,8 +1311,9 @@
     }
 
     function handleState(state) {
-      if (!state) return;
+      if (!state) { console.log('HANDLESTATE: no state'); return; }
       const phase = state.phase;
+      console.log('HANDLESTATE: phase=' + phase + ' lastPhase=' + lastPhase);
       if (state.me) playerSide = state.me.side;
 
       if (phase === 'genre_select' || phase === 'submitting' || phase === 'resolving' ||
@@ -1350,6 +1358,7 @@
     // PHASE TRANSITIONS
     // ============================================================
     function onPhaseChange(state) {
+      console.log('ONPHASECHANGE: ' + state.phase + ' type=' + state.type);
       switch (state.phase) {
         case 'genre_select':
           selectedGenre = null;
