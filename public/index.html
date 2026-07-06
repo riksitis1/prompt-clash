@@ -179,6 +179,15 @@
     .animate-slide-down { animation: slideDown 0.35s ease-out forwards; }
     .pulse-glow { animation: pulseGlow 2s ease-in-out infinite; }
     .waiting-spin { animation: spinner 3s ease-in-out infinite; display: inline-block; }
+    .loading-spinner {
+      width: 48px;
+      height: 48px;
+      border: 4px solid rgba(99, 102, 241, 0.15);
+      border-top-color: #6366f1;
+      border-radius: 50%;
+      animation: spinner 0.8s linear infinite;
+      display: inline-block;
+    }
     .spinner::after {
       content: '';
       width: 18px;
@@ -252,7 +261,8 @@
     }
     .dash-attack { animation: dashAttack 0.9s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
     .flash-overlay { animation: flashRed 0.5s ease-out; }
-    .splash-visible #genre-splash-content { transform: scale(1); opacity: 1; }
+    #genre-splash-content { transform: scale(0.4); opacity: 0; transition: all 0.7s cubic-bezier(0.34, 1.56, 0.64, 1); }
+    .splash-visible #genre-splash-content { transform: scale(1) !important; opacity: 1 !important; }
     .shake-intense { animation: shakeIntense 0.6s ease-out; }
 
     @keyframes shakeIntense {
@@ -508,9 +518,9 @@
 
     <!-- SCREEN: MATCHING -->
     <div id="screen-matching" class="screen flex-1 flex flex-col items-center justify-center gap-5">
-      <div class="relative">
-        <div class="text-6xl animate-pulse" style="filter: drop-shadow(0 0 30px rgba(99,102,241,0.3));">🔍</div>
-        <div class="absolute -bottom-1 left-1/2 -translate-x-1/2 w-16 h-1 rounded-full" style="background: linear-gradient(90deg, transparent, #6366f1, transparent);"></div>
+      <div class="relative flex items-center justify-center">
+        <div class="loading-spinner"></div>
+        <div class="absolute text-2xl" style="filter: drop-shadow(0 0 20px rgba(99,102,241,0.3));">🔍</div>
       </div>
       <div class="text-lg text-indigo-300 font-semibold tracking-wide">Searching for opponent</div>
       <div class="group flex items-center gap-2 px-4 py-2 rounded-full" style="background: rgba(99,102,241,0.06); border: 1px solid rgba(99,102,241,0.06);">
@@ -650,7 +660,10 @@
 
     <!-- SCREEN: WAITING GENRE (P2) -->
     <div id="screen-waiting-genre" class="screen flex-1 flex flex-col items-center justify-center gap-5">
-      <div class="text-6xl animate-pulse" style="filter: drop-shadow(0 0 30px rgba(99,102,241,0.3));">🎲</div>
+      <div class="relative flex items-center justify-center">
+        <div class="loading-spinner" style="width:64px; height:64px; border-width:5px;"></div>
+        <div class="absolute text-3xl" style="filter: drop-shadow(0 0 30px rgba(99,102,241,0.3));">🎲</div>
+      </div>
       <div class="text-lg text-indigo-300 font-semibold tracking-wide">Opponent is choosing the genre...</div>
       <div class="w-32 h-1 rounded-full overflow-hidden" style="background: rgba(99,102,241,0.08);">
         <div class="h-full rounded-full" style="background: linear-gradient(90deg, #6366f1, #818cf8); width: 100%; animation: pulseGlow 2s ease-in-out infinite;"></div>
@@ -659,7 +672,7 @@
 
     <!-- GENRE SPLASH -->
     <div id="genre-splash" class="hidden fixed inset-0 z-50 flex items-center justify-center" style="background: radial-gradient(ellipse at center, rgba(30,27,75,0.96), rgba(7,7,15,0.98));">
-      <div id="genre-splash-content" class="text-center" style="transform: scale(0.4); opacity: 0; transition: all 0.7s cubic-bezier(0.34, 1.56, 0.64, 1);">
+      <div id="genre-splash-content" class="text-center">
         <div id="genre-splash-round" class="text-base md:text-lg text-indigo-400/60 uppercase tracking-[0.4em] mb-2 font-semibold">Round 1</div>
         <div class="text-8xl md:text-9xl mb-5" id="genre-splash-icon" style="filter: drop-shadow(0 0 50px rgba(99,102,241,0.3));">⚔️</div>
         <div class="text-xs md:text-sm text-indigo-400/70 uppercase tracking-[0.3em] mb-3 font-semibold">Battle Genre</div>
