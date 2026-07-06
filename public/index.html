@@ -443,29 +443,41 @@
     </div>
 
     <!-- SCREEN: LOBBY -->
-    <div id="screen-lobby" class="screen flex-1 flex flex-col items-center justify-center p-4 gap-6">
-      <div id="profile-card" class="flex items-center gap-5 animate-fade-in-up" style="background: rgba(20, 20, 50, 0.7); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid rgba(99, 102, 241, 0.08); border-radius: 20px; padding: 24px 28px; box-shadow: 0 8px 40px rgba(0, 0, 0, 0.3); width: 100%; max-width: 400px;">
-        <div id="lobby-avatar" class="letter-avatar text-xl w-16 h-16 text-2xl pulse-glow">?</div>
-        <div class="flex-1 min-w-0">
-          <div id="lobby-username" class="text-lg font-bold text-white truncate"></div>
-          <div class="flex items-center gap-3 mt-1.5 flex-wrap">
-            <span class="inline-flex items-center gap-1.5 text-indigo-300 text-sm font-semibold"><span style="color: #fbbf24;">★</span> <span id="lobby-elo">1000</span> Elo</span>
-            <span class="stat-badge text-xs text-gray-400"><span class="stat-badge-dot" style="background: #22c55e;"></span> <span id="lobby-wins">0</span>W</span>
-            <span class="stat-badge text-xs text-gray-400"><span class="stat-badge-dot" style="background: #6366f1;"></span> <span id="lobby-games">0</span>G</span>
+    <div id="screen-lobby" class="screen flex-1 flex flex-col items-center justify-center p-6">
+      <div class="w-full max-w-md flex flex-col gap-5">
+        <div id="profile-card" class="flex items-center gap-5 animate-fade-in-up w-full" style="background: rgba(20, 20, 50, 0.7); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid rgba(99, 102, 241, 0.08); border-radius: 20px; padding: 24px 28px; box-shadow: 0 8px 40px rgba(0, 0, 0, 0.3);">
+          <div id="lobby-avatar" class="letter-avatar text-xl w-16 h-16 text-2xl pulse-glow">?</div>
+          <div class="flex-1 min-w-0">
+            <div id="lobby-username" class="text-lg font-bold text-white truncate"></div>
+            <div class="flex items-center gap-3 mt-1.5 flex-wrap">
+              <span class="inline-flex items-center gap-1.5 text-indigo-300 text-sm font-semibold"><span style="color: #fbbf24;">★</span> <span id="lobby-elo">1000</span> Elo</span>
+              <span class="stat-badge text-xs text-gray-400"><span class="stat-badge-dot" style="background: #22c55e;"></span> <span id="lobby-wins">0</span>W</span>
+              <span class="stat-badge text-xs text-gray-400"><span class="stat-badge-dot" style="background: #6366f1;"></span> <span id="lobby-games">0</span>G</span>
+            </div>
           </div>
         </div>
-      </div>
-      <div class="flex gap-3 animate-fade-in-up" style="animation-delay: 0.1s;">
-        <button onclick="findPublicMatch()" class="px-7 py-3.5 rounded-xl btn-primary text-base font-bold tracking-wide">Find Public Match</button>
-        <button onclick="createPrivateRoom()" class="px-7 py-3.5 rounded-xl btn-secondary text-base font-bold tracking-wide">Private Room</button>
-      </div>
-      <div id="private-room-code" class="hidden animate-slide-down w-full max-w-xs" style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.15); border-radius: 12px; padding: 12px 24px;">
-        <span class="text-xs text-emerald-400 font-medium block mb-0.5">Room Code</span>
-        <span class="text-xl font-bold font-mono tracking-[0.2em] text-center block text-emerald-300" id="private-room-code-value">????</span>
-      </div>
-      <div class="flex gap-2 items-center animate-fade-in-up" style="animation-delay: 0.2s;">
-        <input id="join-code-input" type="text" placeholder="Room Code" maxlength="4" class="w-32 px-4 py-3 rounded-xl bg-[#0a0a18]/70 border border-indigo-800/30 text-white text-center uppercase tracking-[0.15em] glow-border outline-none placeholder:text-gray-400 text-sm font-mono">
-        <button onclick="joinPrivateRoom()" class="px-5 py-3 rounded-xl btn-primary text-sm font-bold tracking-wide">Join</button>
+
+        <button onclick="findPublicMatch()" class="w-full py-4 rounded-xl btn-primary text-base font-bold tracking-wide animate-fade-in-up" style="animation-delay: 0.1s;">Find Public Match</button>
+
+        <div class="animate-fade-in-up flex flex-col gap-3" style="animation-delay: 0.15s;">
+          <button id="btn-toggle-private" onclick="togglePrivateSection()" class="w-full py-3 rounded-xl btn-ghost text-sm font-bold tracking-wide">Private Room ▾</button>
+          <div id="private-section" class="hidden flex flex-col gap-3">
+            <button id="btn-create-room" onclick="createPrivateRoom()" class="w-full py-2.5 rounded-xl btn-ghost text-sm font-medium">Create a Room</button>
+            <div class="flex items-center gap-3">
+              <div class="flex-1 h-px" style="background: rgba(99,102,241,0.1);"></div>
+              <span class="text-xs text-gray-600 font-medium">or join one</span>
+              <div class="flex-1 h-px" style="background: rgba(99,102,241,0.1);"></div>
+            </div>
+            <div class="flex gap-2">
+              <input id="join-code-input" type="text" placeholder="Room Code" maxlength="4" class="flex-1 px-4 py-2.5 rounded-xl bg-[#0a0a18]/70 border border-indigo-800/30 text-white text-center uppercase tracking-[0.15em] glow-border outline-none placeholder:text-gray-400 text-sm font-mono">
+              <button onclick="joinPrivateRoom()" class="px-5 py-2.5 rounded-xl btn-primary text-sm font-bold tracking-wide">Join</button>
+            </div>
+            <div id="private-room-code" class="hidden animate-slide-down w-full" style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.15); border-radius: 12px; padding: 10px 20px;">
+              <span class="text-xs text-emerald-400 font-medium block mb-0.5">Room Code</span>
+              <span class="text-lg font-bold font-mono tracking-[0.2em] text-center block text-emerald-300" id="private-room-code-value">????</span>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -946,10 +958,18 @@
     // ============================================================
     // PRIVATE ROOMS
     // ============================================================
+    function togglePrivateSection() {
+      const section = document.getElementById('private-section');
+      const btn = document.getElementById('btn-toggle-private');
+      const isHidden = section.classList.contains('hidden');
+      section.classList.toggle('hidden');
+      btn.textContent = isHidden ? 'Private Room ▴' : 'Private Room ▾';
+    }
+
     async function createPrivateRoom() {
       const token = await getToken();
       if (!token) return;
-      const btn = document.querySelector('#screen-lobby .btn-secondary');
+      const btn = document.getElementById('btn-create-room');
       setLoading(btn, true);
       const res = await fetch('/api/create-room', {
         method: 'POST',
