@@ -1224,29 +1224,23 @@
       const btn = document.getElementById('pl-start-btn');
       btn.disabled = true;
       btn.textContent = 'Starting...';
-      const res = await fetch('/api/start-game', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: roomCode })
-      });
-      if (!res.ok) {
+      try {
+        const res = await fetch('/api/start-game', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code: roomCode })
+        });
+        if (!res.ok) {
+          btn.disabled = false;
+          btn.textContent = 'Start Game';
+          return;
+        }
+        await pollGameState();
+      } catch (e) {
+        console.error('start error', e);
         btn.disabled = false;
         btn.textContent = 'Start Game';
-        return;
       }
-      lastPhase = 'submitting';
-      showScreen('screen-battle');
-      document.getElementById('battle-round').textContent = '1';
-      document.getElementById('battle-genre').textContent = selectedGenre || '???';
-      turnStartTime = Date.now();
-      const pSide = playerSide || 'p1';
-      document.getElementById(`battle-${pSide}-input`).value = '';
-      document.getElementById('arena-emoji-p1').textContent = '❓';
-      document.getElementById('arena-emoji-p2').textContent = '❓';
-      document.getElementById('arena-entity-p1').textContent = '';
-      document.getElementById('arena-entity-p2').textContent = '';
-      document.getElementById('battle-countdown').textContent = '30s';
-      pollGameState();
     }
 
     async function leaveRoom() {
