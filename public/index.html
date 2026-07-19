@@ -486,133 +486,141 @@
       #nav-username { font-size: 0.75rem !important; max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
       nav { padding: 10px 12px !important; }
 
-      /* Battle screen: fit viewport exactly, no scrolling */
+      /* Battle screen: fit viewport exactly */
       #screen-battle {
-        padding: 2px !important;
-        gap: 2px !important;
+        padding: 3px !important;
+        gap: 3px !important;
         overflow: hidden !important;
         height: calc((var(--vh, 1vh) * 100) - 50px) !important;
       }
 
-      /* Battle top bar */
+      /* Header bar — spacious, readable */
       #screen-battle > div:first-child {
-        padding: 4px 8px !important;
-        font-size: 10px !important;
+        padding: 6px 10px !important;
+        font-size: 11px !important;
+        gap: 8px !important;
         min-height: 0 !important;
         flex-wrap: nowrap !important;
-        gap: 6px !important;
       }
-      #screen-battle > div:first-child #battle-countdown { font-size: 11px !important; }
-      #btn-resign { font-size: 12px !important; padding: 6px 12px !important; }
+      #battle-countdown { font-size: 13px !important; }
+      #btn-resign { font-size: 13px !important; padding: 8px 14px !important; }
 
-      /* Judge/mutator bar — thin */
+      /* Judge/mutator bar */
       #screen-battle > div:nth-child(2) {
-        font-size: 8px !important;
-        padding: 1px 6px !important;
+        font-size: 10px !important;
+        padding: 3px 8px !important;
         min-height: 0 !important;
       }
-      .help-tip { font-size: 8px !important; }
-      .help-tip:hover::after { max-width: 140px !important; font-size: 8px !important; white-space: normal; }
+      .help-tip { font-size: 10px !important; }
+      .help-tip:hover::after { max-width: 160px !important; font-size: 10px !important; white-space: normal; }
 
       /* Disconnect banner */
       #disconnect-banner {
-        padding: 2px 6px !important;
-        font-size: 8px !important;
+        padding: 3px 8px !important;
+        font-size: 9px !important;
       }
 
-      /* Battle main: fills remaining space, flex column */
+      /* Battle main: 2-column grid — arena full width top, P1+P2 side by side */
       .battle-main {
+        display: grid !important;
+        grid-template-columns: 1fr 1fr;
+        gap: 3px;
         flex: 1 !important;
-        gap: 2px !important;
-        overflow: hidden !important;
         min-height: 0 !important;
+        overflow: hidden !important;
       }
 
-      /* Arena: compact, just enough for emojis */
+      /* Arena: full width first row */
       #arena-center {
         order: -1;
-        flex: 0 0 auto !important;
-        height: 90px !important;
-        min-height: 90px !important;
-        border-radius: 8px !important;
+        grid-column: 1 / -1;
+        grid-row: 1;
+        flex: none !important;
+        height: 110px !important;
+        min-height: 110px !important;
+        border-radius: 10px !important;
         min-width: auto !important;
       }
-      .arena-emoji { font-size: 2rem !important; }
-      .arena-entity-label { font-size: 0.5rem !important; bottom: 3px !important; }
-      .damage-popup { font-size: 1.4rem !important; }
+      .arena-emoji { font-size: 2.4rem !important; }
+      .arena-entity-label { font-size: 0.55rem !important; bottom: 4px !important; }
+      .damage-popup { font-size: 1.5rem !important; }
       .damage-text { font-size: 0.55rem !important; }
-      .fight-cloud-inner { width: 65px !important; height: 65px !important; font-size: 1.3rem !important; }
+      .fight-cloud-inner { width: 75px !important; height: 75px !important; font-size: 1.4rem !important; }
 
-      /* Player sides: compact row, right next to arena */
+      /* Player sides: column layout in each grid cell */
       .battle-main > .player-side {
-        flex: 0 0 auto !important;
-        flex-direction: row !important;
+        flex: none !important;
+        flex-direction: column !important;
         align-items: center !important;
-        padding: 3px 8px !important;
-        gap: 6px !important;
-        border-radius: 6px !important;
-        justify-content: flex-start !important;
+        justify-content: center !important;
+        padding: 6px 4px !important;
+        gap: 4px !important;
+        border-radius: 8px !important;
       }
+      .battle-main > .player-side:nth-child(1) { grid-column: 1; grid-row: 2; }
+      .battle-main > .player-side:nth-child(3) { grid-column: 2; grid-row: 2; }
+
       .battle-main > .player-side .player-avatar-section {
-        flex-direction: row !important;
-        gap: 5px !important;
+        flex-direction: column !important;
+        gap: 2px !important;
         align-items: center !important;
       }
       .battle-main > .player-side .player-avatar-section .letter-avatar {
-        width: 30px !important; height: 30px !important; font-size: 0.75rem !important;
+        width: 32px !important; height: 32px !important; font-size: 0.8rem !important;
       }
       .battle-main > .player-side .player-name-elo {
-        font-size: 0.55rem !important;
-        display: flex; flex-direction: row; gap: 3px; align-items: baseline;
+        font-size: 0.6rem !important;
+        text-align: center !important;
+        display: flex; flex-direction: column; gap: 1px; align-items: center;
       }
       .battle-main > .player-side .player-name-elo #battle-p1-name,
       .battle-main > .player-side .player-name-elo #battle-p2-name {
-        font-size: 0.75rem !important;
+        font-size: 0.8rem !important;
       }
 
       /* Hide per-player input on mobile */
       .battle-main > .player-side .player-input-section { display: none !important; }
 
-      /* HP section: inline, right-aligned */
+      /* HP section: full width at bottom of each cell */
       .battle-main > .player-side .player-hp-section {
-        width: auto !important;
-        min-width: 45px !important;
+        width: 100% !important;
+        min-width: auto !important;
         margin-top: 0 !important;
       }
       .battle-main > .player-side .player-hp-section .hp-bar-track { height: 5px !important; }
       .battle-main > .player-side .player-hp-section span { font-size: 9px !important; }
 
-      /* Mobile input bar — right after player info */
+      /* Mobile input bar */
       #mobile-input-bar {
-        padding: 2px 0 !important;
+        padding: 4px 0 !important;
         gap: 2px !important;
       }
       #mobile-input-bar input {
         font-size: 16px !important;
-        padding: 7px 10px !important;
-        border-radius: 6px !important;
+        padding: 10px 12px !important;
+        border-radius: 8px !important;
       }
       #mobile-input-bar button {
-        padding: 7px 12px !important;
-        font-size: 12px !important;
-        border-radius: 6px !important;
-        min-width: 65px;
+        padding: 10px 16px !important;
+        font-size: 14px !important;
+        border-radius: 8px !important;
+        min-width: 70px;
       }
-      #mobile-submit-tip { font-size: 7px !important; }
+      #mobile-submit-tip { font-size: 8px !important; }
 
-      /* Battle log: fills remaining, scrollable, right at bottom */
+      /* Battle log: fills remaining space, scrollable */
       #battle-log {
         flex: 1 !important;
         min-height: 0 !important;
         overflow-y: auto !important;
-        border-radius: 6px !important;
+        border-radius: 8px !important;
       }
       #battle-log .log-container {
-        font-size: 9px !important;
-        padding: 1px 6px 3px !important;
+        font-size: 10px !important;
+        padding: 2px 8px 4px !important;
       }
-      #battle-log .flex.items-center { padding: 1px 6px 0 !important; }
-      #battle-log .flex.items-center span { font-size: 8px !important; }
+      #battle-log .flex.items-center { padding: 2px 8px 0 !important; }
+      #battle-log .flex.items-center span { font-size: 9px !important; }
 
       /* Game over */
       #gameover-icon { font-size: 4rem !important; }
@@ -646,19 +654,28 @@
        SMALL PHONE (<400px)
        ============================================ */
     @media (max-width: 400px) {
-      .battle-main > .player-side { padding: 2px 6px !important; gap: 4px !important; }
-      .battle-main > .player-side .player-avatar-section .letter-avatar { width: 26px !important; height: 26px !important; font-size: 0.65rem !important; }
+      #screen-battle { padding: 2px !important; gap: 2px !important; }
+      #screen-battle > div:first-child { padding: 4px 8px !important; font-size: 10px !important; gap: 6px !important; }
+      #battle-countdown { font-size: 11px !important; }
+      #btn-resign { font-size: 12px !important; padding: 6px 10px !important; }
+      #screen-battle > div:nth-child(2) { font-size: 9px !important; padding: 2px 6px !important; }
+      .help-tip { font-size: 9px !important; }
+      .battle-main { gap: 2px !important; }
+      #arena-center { height: 90px !important; min-height: 90px !important; }
+      .arena-emoji { font-size: 2rem !important; }
+      .arena-entity-label { font-size: 0.5rem !important; }
+      .fight-cloud-inner { width: 65px !important; height: 65px !important; font-size: 1.2rem !important; }
+      .battle-main > .player-side { padding: 4px 3px !important; gap: 3px !important; }
+      .battle-main > .player-side .player-avatar-section .letter-avatar { width: 28px !important; height: 28px !important; font-size: 0.7rem !important; }
       .battle-main > .player-side .player-name-elo #battle-p1-name,
-      .battle-main > .player-side .player-name-elo #battle-p2-name { font-size: 0.65rem !important; }
-      .battle-main > .player-side .player-hp-section { min-width: 30px !important; }
+      .battle-main > .player-side .player-name-elo #battle-p2-name { font-size: 0.7rem !important; }
       .battle-main > .player-side .player-hp-section .hp-bar-track { height: 4px !important; }
-      #arena-center { height: 75px !important; min-height: 75px !important; }
-      .arena-emoji { font-size: 1.6rem !important; }
-      .fight-cloud-inner { width: 55px !important; height: 55px !important; font-size: 1.1rem !important; }
-      #mobile-input-bar input { font-size: 16px !important; padding: 5px 8px !important; }
-      #mobile-input-bar button { font-size: 11px !important; padding: 5px 8px !important; min-width: 55px; }
-      #battle-log .log-container { font-size: 8px !important; padding: 1px 4px 2px !important; }
-      #screen-battle > div:first-child { flex-wrap: wrap; gap: 4px; }
+      #mobile-input-bar input { font-size: 16px !important; padding: 8px 10px !important; }
+      #mobile-input-bar button { font-size: 13px !important; padding: 8px 12px !important; min-width: 60px; }
+      #battle-log .log-container { font-size: 9px !important; padding: 1px 6px 3px !important; }
+      #battle-log .flex.items-center span { font-size: 8px !important; }
+      #gameover-icon { font-size: 3rem !important; }
+      #gameover-title { font-size: 1.3rem !important; }
       nav h1 { font-size: 0.85rem !important; }
       #nav-username { max-width: 70px; font-size: 0.7rem !important; }
       #btn-logout { font-size: 0.65rem !important; padding: 3px 6px !important; }
@@ -668,8 +685,6 @@
       #lobby-username { font-size: 0.85rem !important; }
       #genre-splash-name { font-size: 2.2rem !important; }
       #genre-splash-icon { font-size: 3rem !important; }
-      #gameover-icon { font-size: 3rem !important; }
-      #gameover-title { font-size: 1.3rem !important; }
       #screen-auth h2 { font-size: 1.2rem !important; }
     }
   </style>
