@@ -24,9 +24,33 @@ function loadUsers() {
   catch { usersCache = {}; return usersCache; }
 }
 
+let saveTimeoutId = null;
+let pendingUsers = null;
+
 function saveUsers(users) {
   usersCache = users;
-  fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2), 'utf-8');
+  pendingUsers = users;
+  if (!saveTimeoutId) {
+    saveTimeoutId = setTimeout(() => {
+      try {
+        if (pendingUsers) fs.writeFileSync(USERS_FILE, JSON.stringify(pendingUsers), 'utf-8');
+      } catch (e) { console.error('Failed to save users:', e); }
+      saveTimeoutId = null;
+      pendingUsers = null;
+    }, 3000);
+  }
+}
+
+// Flush pending user writes immediately (called before shutdown)
+function flushUsers() {
+  if (saveTimeoutId) {
+    clearTimeout(saveTimeoutId);
+    saveTimeoutId = null;
+  }
+  if (pendingUsers) {
+    try { fs.writeFileSync(USERS_FILE, JSON.stringify(pendingUsers), 'utf-8'); } catch {}
+    pendingUsers = null;
+  }
 }
 
 // ============================================================
@@ -54,6 +78,43 @@ const GENRES = ['Animals', 'Machines', 'Mythical Creatures', 'Elements', 'Cosmic
 const ROUND_TIMEOUT = 30000;
 const AUTO_ADVANCE_DELAY = 6000;
 const ELO_K = 48;
+
+// ============================================================
+// SSE broadcast — pushes state to all connected clients in a room
+// ============================================================
+function broadcastRoomState(room) {
+  if (!room || !room.sseClients || room.sseClients.length === 0) return;
+  const dead = [];
+  for (let i = 0; i < room.sseClients.length; i++) {
+    const client = room.sseClients[i];
+    try {
+      const state = sanitizeRoom(room, client.uid);
+      client.res.write(`data: ${JSON.stringify(state)}\n\n`);
+    } catch {
+      dead.push(i);
+    }
+  }
+  for (let i = dead.length - 1; i >= 0; i--) {
+    room.sseClients.splice(dead[i], 1);
+  }
+}
+
+// ============================================================
+// Simple in-memory rate limiter (per-IP)
+// ============================================================
+const rateHits = new Map();
+function rateLimit(maxReq, windowMs) {
+  return (req, res, next) => {
+    const ip = req.ip || req.connection?.remoteAddress || 'unknown';
+    const now = Date.now();
+    if (!rateHits.has(ip)) rateHits.set(ip, []);
+    const hits = rateHits.get(ip);
+    while (hits.length > 0 && hits[0] < now - windowMs) hits.shift();
+    hits.push(now);
+    if (hits.length > maxReq) return res.status(429).json({ error: 'Too many requests' });
+    next();
+  };
+}
 
 const PERSONALITIES = {
   'Hype Beast MC': 'Talks in ALL CAPS, uses streetwear/hype slang (e.g. SHEEEESH, no cap, deadass, cooked, absolute devastation, OMG, straight fire). Extremely energized, commentating the battle like a loud hype-man.',
@@ -113,8 +174,9 @@ function createRoom(type, p1Data) {
     roundTimer: null, advanceTimer: null,
     lastEntityP1: null, lastEntityP2: null,
     turnStartTime: Date.now(),
-    forfeitStarted: null, // timestamp when forfeit countdown began
-    forfeitSide: null,    // which side is being forfeited
+    forfeitStarted: null,
+    forfeitSide: null,
+    sseClients: [],
   };
   rooms.set(code, room);
   return room;
@@ -147,13 +209,14 @@ async function forfeitPlayer(room, loserSide) {
     loserHp: 0,
     description: `${loser.username} left the battle. ${winner.username} wins by forfeit!`,
   };
-  room.battleLog.push(logEntry);
-  room.phase = 'game_over';
-  clearTimeout(room.roundTimer);
-  clearTimeout(room.advanceTimer);
+pushBattleLog(room, logEntry);
+      room.phase = 'game_over';
+      clearTimeout(room.roundTimer);
+      clearTimeout(room.advanceTimer);
   room.forfeitStarted = null;
   room.forfeitSide = null;
   await updateEloAfterGame(room, winner, loser);
+  broadcastRoomState(room);
 }
 
 function avatarColor(str) {
@@ -276,12 +339,14 @@ function startRoundTimer(room) {
     const winner = p1Dead ? room.p2 : room.p1;
     const loser = p1Dead ? room.p1 : room.p2;
     updateEloAfterGame(room, winner, loser);
+    broadcastRoomState(room);
     return;
   }
   room.genre = pickRandomGenre();
   room.mutator = pickRandomMutator();
-  clearTimeout(room.roundTimer);
   room.turnStartTime = Date.now();
+  broadcastRoomState(room);
+  clearTimeout(room.roundTimer);
   room.roundTimer = setTimeout(async () => {
     if (room.phase !== 'submitting') return;
     const p1Late = !room.p1.ready;
@@ -299,7 +364,7 @@ function startRoundTimer(room) {
         winnerHp: room.p1.hp, loserHp: room.p2.hp,
         description: p1Late && p2Late ? 'Both players ran out of time! Each takes 20 damage.' : (p1Late ? `${room.p1.username} ran out of time and takes 20 damage.` : `${room.p2.username} ran out of time and takes 20 damage.`),
       };
-      room.battleLog.push(logEntry);
+      pushBattleLog(room, logEntry);
       room.p1.entity = null; room.p2.entity = null;
       room.p1.ready = false; room.p2.ready = false;
       room.p1.entityHidden = true; room.p2.entityHidden = true;
@@ -309,9 +374,11 @@ function startRoundTimer(room) {
       room.phase = 'game_over';
       clearTimeout(room.advanceTimer);
       await updateEloAfterGame(room, winner, loser);
+      broadcastRoomState(room);
       return;
       }
       room.phase = 'round_result';
+      broadcastRoomState(room);
       clearTimeout(room.advanceTimer);
       room.advanceTimer = setTimeout(() => {
         if (room.phase === 'game_over') return;
@@ -459,7 +526,7 @@ async function resolveGibberish(room, g1, g2) {
       description: 'Both players submitted nonsense. The battle devolves into chaotic gibberish. Nobody wins.'
     };
     const log = await applyBattleResult(room, data);
-    room.battleLog.push(log);
+    pushBattleLog(room, log);
     if (room.phase === 'game_over') return;
     advanceAfterResolve(room);
     return;
@@ -478,7 +545,7 @@ async function resolveGibberish(room, g1, g2) {
       : `"${room.p1.entity || '???'}" utterly demolishes the nonsensical "${room.p2.entity || '???'}". Gibberish stands no chance against a real concept!`
   };
   const log = await applyBattleResult(room, data);
-  room.battleLog.push(log);
+  pushBattleLog(room, log);
   if (room.phase === 'game_over') return;
   advanceAfterResolve(room);
 }
@@ -504,7 +571,7 @@ async function resolveBattle(room) {
   const cacheKey = `${genre}::${e1}::${e2}`;
   if (battleCache.has(cacheKey)) {
     const log = await applyBattleResult(room, battleCache.get(cacheKey));
-    room.battleLog.push(log);
+    pushBattleLog(room, log);
     if (room.phase === 'game_over') return;
     advanceAfterResolve(room);
     return;
@@ -571,7 +638,7 @@ CRITICAL RULES (follow strictly in this order):
 
   cacheBattleResult(cacheKey, data);
   const logEntry = await applyBattleResult(room, data);
-  room.battleLog.push(logEntry);
+  pushBattleLog(room, logEntry);
   if (room.phase === 'game_over') return;
   advanceAfterResolve(room);
 }
@@ -670,9 +737,15 @@ async function applyBattleResult(room, data) {
     room.p1.entity = null; room.p2.entity = null;
     room.p1.ready = false; room.p2.ready = false;
     room.p1.entityHidden = true; room.p2.entityHidden = true;
+    broadcastRoomState(room);
   }
 
   return logEntry;
+}
+
+function pushBattleLog(room, entry) {
+  room.battleLog.push(entry);
+  if (room.battleLog.length > 50) room.battleLog = room.battleLog.slice(-50);
 }
 
 function advanceAfterResolve(room) {
@@ -681,6 +754,7 @@ function advanceAfterResolve(room) {
   room.p1.ready = false; room.p2.ready = false;
   room.p1.entityHidden = true; room.p2.entityHidden = true;
   room.phase = 'round_result';
+  broadcastRoomState(room);
   clearTimeout(room.advanceTimer);
   room.advanceTimer = setTimeout(() => {
     if (room.phase === 'game_over') return;
@@ -718,7 +792,7 @@ async function updateEloAfterGame(room, winner, loser) {
 // ============================================================
 
 // --- Auth: Register ---
-app.post('/api/register', (req, res) => {
+app.post('/api/register', rateLimit(20, 60000), (req, res) => {
   const { username, password } = req.body;
   if (!username || typeof username !== 'string' || username.trim().length < 2) return res.status(400).json({ error: 'Username must be at least 2 characters' });
   if (!password || typeof password !== 'string' || password.length < 4) return res.status(400).json({ error: 'Password must be at least 4 characters' });
@@ -737,7 +811,7 @@ app.post('/api/register', (req, res) => {
 });
 
 // --- Auth: Guest Login (auto-create guest account) ---
-app.post('/api/guest-login', (req, res) => {
+app.post('/api/guest-login', rateLimit(10, 60000), (req, res) => {
   try {
     let guestName;
     do {
@@ -755,7 +829,7 @@ app.post('/api/guest-login', (req, res) => {
 });
 
 // --- Auth: Login ---
-app.post('/api/login', (req, res) => {
+app.post('/api/login', rateLimit(20, 60000), (req, res) => {
   const { username, password } = req.body;
   if (!username || !username.trim() || !password) return res.status(400).json({ error: 'Username and password required' });
   try {
@@ -805,7 +879,7 @@ app.post('/api/find-match', async (req, res) => {
   // Clean up any stale rooms where this user was (game_over or abandoned)
   for (const [code, room] of rooms) {
     if ((room.p1?.userId === user.uid || room.p2?.userId === user.uid) && room.phase === 'game_over') {
-      rooms.delete(code);
+      destroyRoom(room); rooms.delete(code);
     }
   }
   // Find an open room (closest Elo match), or create one
@@ -817,6 +891,7 @@ app.post('/api/find-match', async (req, res) => {
     room.phase = 'submitting';
     room.turnStartTime = Date.now();
     startRoundTimer(room);
+    broadcastRoomState(room);
   } else {
     room = createRoom('public', { userId: user.uid, username, elo });
   }
@@ -849,8 +924,21 @@ app.post('/api/join-room', async (req, res) => {
   const elo = userData.elo || 1000;
   room.p2 = { userId: user.uid, username, elo, hp: 100, entity: null, ready: false, entityHidden: true, emoji: null, lastPollTime: Date.now() };
   room.phase = 'genre_select';
+  broadcastRoomState(room);
   res.json({ success: true });
 });
+
+function destroyRoom(room) {
+  if (!room) return;
+  clearTimeout(room.roundTimer);
+  clearTimeout(room.advanceTimer);
+  if (room.sseClients) {
+    for (const client of room.sseClients) {
+      try { client.res.end(); } catch {}
+    }
+    room.sseClients = [];
+  }
+}
 
 // --- Room: Leave (abandon any room) ---
 app.post('/api/leave-room', async (req, res) => {
@@ -863,8 +951,7 @@ app.post('/api/leave-room', async (req, res) => {
         const loserSide = room.p1.userId === user.uid ? 'p1' : 'p2';
         await forfeitPlayer(room, loserSide);
       } else {
-        clearTimeout(room.roundTimer);
-        clearTimeout(room.advanceTimer);
+        destroyRoom(room);
         rooms.delete(code);
       }
       return res.json({ success: true });
@@ -879,7 +966,7 @@ app.post('/api/cancel-match', (req, res) => {
   if (!user) return res.status(401).json({ error: 'Unauthorized' });
   for (const [code, room] of rooms.entries()) {
     if (room.p1?.userId === user.uid && !room.p2) {
-      clearTimeout(room.roundTimer); clearTimeout(room.advanceTimer);
+      destroyRoom(room);
       rooms.delete(code);
       return res.json({ success: true });
     }
@@ -909,6 +996,7 @@ app.post('/api/lock-genre', (req, res) => {
   if (room.p1.userId !== user.uid) return res.status(403).json({ error: 'Only the host can lock genre' });
   if (!GENRES.includes(genre)) return res.status(400).json({ error: 'Invalid genre' });
   room.genre = genre;
+  broadcastRoomState(room);
   res.json({ success: true });
 });
 
@@ -938,6 +1026,7 @@ app.post('/api/start-game', (req, res) => {
   room.phase = 'submitting';
   room.turnStartTime = Date.now();
   startRoundTimer(room);
+  broadcastRoomState(room);
   res.json({ success: true });
 });
 
@@ -962,11 +1051,12 @@ app.post('/api/private-reset', (req, res) => {
   room.battleLog = [];
   room.genre = null;
   room.phase = 'genre_select';
+  broadcastRoomState(room);
   res.json({ success: true });
 });
 
 // --- Game: Submit Entity ---
-app.post('/api/submit-entity', (req, res) => {
+app.post('/api/submit-entity', rateLimit(30, 60000), (req, res) => {
   const user = verifyToken(req);
   if (!user) return res.status(401).json({ error: 'Unauthorized' });
   const { code, entity } = req.body;
@@ -984,6 +1074,7 @@ app.post('/api/submit-entity', (req, res) => {
     if (room.p2.ready) return res.status(400).json({ error: 'Already submitted' });
     room.p2.entity = entity.trim(); room.p2.ready = true; room.p2.entityHidden = false;
   }
+  broadcastRoomState(room);
   if (room.p1.ready && room.p2.ready) { clearTimeout(room.roundTimer); resolveBattle(room); }
   res.json({ success: true });
 });
@@ -1038,6 +1129,73 @@ app.post('/api/resign', async (req, res) => {
 
 // --- Health Check ---
 app.get('/api/health', (req, res) => res.json({ status: 'ok', ai: !!openai }));
+
+// ============================================================
+// SSE endpoint — real-time game state push
+// ============================================================
+app.get('/api/sse/:code', (req, res) => {
+  const token = req.query.token;
+  if (!token) return res.status(401).end();
+  let user;
+  try { user = jwt.verify(token, JWT_SECRET); } catch { return res.status(401).end(); }
+
+  const room = rooms.get(req.params.code?.toUpperCase());
+  if (!room) return res.status(404).end();
+
+  const isP1 = room.p1?.userId === user.uid;
+  const isP2 = room.p2?.userId === user.uid;
+  if (!isP1 && !isP2) return res.status(403).end();
+
+  res.writeHead(200, {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    'Connection': 'keep-alive',
+    'X-Accel-Buffering': 'no',
+  });
+
+  const client = { uid: user.uid, res };
+  room.sseClients.push(client);
+
+  // Send initial state immediately
+  try {
+    const state = sanitizeRoom(room, user.uid);
+    res.write(`data: ${JSON.stringify(state)}\n\n`);
+  } catch {}
+
+  // Keep-alive heartbeat every 25s
+  const heartbeat = setInterval(() => {
+    try { res.write(':heartbeat\n\n'); } catch { clearInterval(heartbeat); }
+  }, 25000);
+
+  req.on('close', () => {
+    clearInterval(heartbeat);
+    const idx = room.sseClients.indexOf(client);
+    if (idx >= 0) room.sseClients.splice(idx, 1);
+  });
+});
+
+// ============================================================
+// Room cleanup — prevent memory leaks on a free tier
+// ============================================================
+setInterval(() => {
+  const now = Date.now();
+  for (const [code, room] of rooms) {
+    if (room.phase === 'game_over' && now - room.turnStartTime > 300000) {
+      destroyRoom(room); rooms.delete(code);
+    } else if (room.phase === 'waiting' && !room.p2 && now - (room.p1?.lastPollTime || 0) > 600000) {
+      destroyRoom(room); rooms.delete(code);
+    } else if (room.phase === 'genre_select' && now - room.turnStartTime > 1800000) {
+      destroyRoom(room); rooms.delete(code);
+    }
+  }
+}, 60000);
+
+// ============================================================
+// Shutdown handlers — flush pending user data
+// ============================================================
+process.on('SIGTERM', () => { flushUsers(); process.exit(0); });
+process.on('SIGINT', () => { flushUsers(); process.exit(0); });
+process.on('SIGUSR2', () => { flushUsers(); process.exit(0); });
 
 // ============================================================
 // START

@@ -427,8 +427,14 @@
       color: #e0e7ff;
     }
 
-    /* Mobile responsive */
+    /* Touch-friendly: prevent double-tap zoom on buttons */
+    button, .genre-card, .help-tip { touch-action: manipulation; }
+
+    /* ============================================
+       TABLET / LARGE PHONE (<768px)
+       ============================================ */
     @media (max-width: 768px) {
+      /* Battle: stack -> row per player */
       .battle-main { flex-direction: column !important; }
       .battle-main > .player-side { flex: none !important; flex-direction: row !important; align-items: center !important; padding: 8px 12px !important; gap: 8px !important; justify-content: flex-start !important; }
       .battle-main > .player-side .player-avatar-section { flex-direction: row !important; gap: 8px !important; }
@@ -436,18 +442,209 @@
       .battle-main > .player-side .player-input-section { flex: 1 !important; min-width: 0 !important; }
       .battle-main > .player-side .player-input-section input { font-size: 0.8rem !important; padding: 6px 10px !important; }
       .battle-main > .player-side .player-input-section button { padding: 6px 10px !important; font-size: 0.75rem !important; }
+      .battle-main > .player-side .player-name-elo { font-size: 0.7rem !important; }
       .battle-main > .player-side .player-hp-section { width: 100px !important; }
+      #screen-battle { padding: 6px !important; gap: 4px !important; overflow: hidden !important; }
       #arena-center { flex: 1 !important; min-height: 140px !important; min-width: auto !important; }
       .arena-emoji { font-size: 3rem !important; }
-      #screen-battle { padding: 6px !important; gap: 4px !important; }
       .fight-cloud-inner { width: 100px !important; height: 100px !important; font-size: 2rem !important; }
-      #battle-log { display: none !important; }
-      .battle-main > .player-side .player-name-elo { font-size: 0.7rem !important; }
+      /* Battle log: compact but visible */
+      #battle-log { display: block !important; flex: 0 0 auto !important; max-height: 60px !important; }
+      #battle-log .log-container { max-height: 36px !important; font-size: 11px !important; padding: 2px 8px 4px !important; }
+      #battle-log .flex.items-center { padding: 2px 8px 0 !important; }
+      #battle-log .flex.items-center span { font-size: 10px !important; }
       .genre-grid { grid-template-columns: 1fr 1fr !important; gap: 6px !important; }
       #screen-genre { padding: 12px !important; }
+      #pl-genre-grid { grid-template-columns: 1fr 1fr !important; }
     }
-    @media (max-width: 480px) {
+
+    /* ============================================
+       PHONE (<640px) — battle fits viewport, log visible, inputs prominent
+       ============================================ */
+    @media (max-width: 640px) {
+      /* Lobby */
+      #profile-card { padding: 16px 18px !important; gap: 12px !important; }
+      #profile-card .letter-avatar { width: 44px !important; height: 44px !important; font-size: 1.1rem !important; }
+      #lobby-username { font-size: 1rem !important; }
+      #screen-lobby > div { padding: 0 4px; }
+      #how-to-play { font-size: 11px !important; }
+
+      /* Auth screen */
+      #screen-auth > div { padding: 24px 18px !important; }
+      #screen-auth h2 { font-size: 1.4rem !important; }
+      #screen-auth .text-5xl { font-size: 2.5rem !important; }
+      #screen-auth input { font-size: 16px !important; padding: 12px !important; }
+      #screen-auth button { font-size: 13px !important; padding: 12px !important; }
+
+      /* Private room */
+      #private-section .flex.gap-3 { flex-direction: column !important; gap: 8px !important; }
+      #join-code-input { font-size: 16px !important; padding: 12px !important; }
+      .genre-card { font-size: 0.75rem !important; padding: 10px 8px !important; gap: 6px; }
+
+      /* Nav */
+      nav h1 { font-size: 0.95rem !important; }
+      #nav-username { font-size: 0.75rem !important; max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      nav { padding: 10px 12px !important; }
+
+      /* Battle screen: prevent vertical overflow, fit viewport */
+      #screen-battle {
+        padding: 3px !important;
+        gap: 2px !important;
+        overflow: hidden !important;
+      }
+
+      /* Battle top bar — compact */
+      #screen-battle > div:first-child {
+        padding: 3px 8px !important;
+        font-size: 9px !important;
+        min-height: 0 !important;
+        flex-wrap: nowrap !important;
+      }
+      #screen-battle > div:first-child #battle-countdown { font-size: 11px !important; }
+      #btn-resign { font-size: 9px !important; padding: 3px 6px !important; }
+
+      /* Judge/mutator bar — compact */
+      #screen-battle > div:nth-child(2) {
+        font-size: 9px !important;
+        padding: 2px 8px !important;
+        min-height: 0 !important;
+      }
+      .help-tip { font-size: 9px !important; }
+      .help-tip:hover::after { max-width: 180px !important; font-size: 9px !important; white-space: normal; }
+
+      /* Battle main: let it grow but don't overflow */
+      .battle-main {
+        gap: 3px !important;
+        overflow: hidden !important;
+      }
+
+      /* Player sides: compact row, no scroll */
+      .battle-main > .player-side {
+        flex: 0 0 auto !important;
+        padding: 3px 8px !important;
+        gap: 6px !important;
+        border-radius: 10px !important;
+      }
+      .battle-main > .player-side .player-avatar-section { gap: 6px !important; }
+      .battle-main > .player-side .player-avatar-section .letter-avatar {
+        width: 28px !important; height: 28px !important; font-size: 0.75rem !important;
+      }
+      .battle-main > .player-side .player-name-elo { font-size: 0.55rem !important; }
+      .battle-main > .player-side .player-name-elo #battle-p1-name,
+      .battle-main > .player-side .player-name-elo #battle-p2-name { font-size: 0.75rem !important; }
+
+      /* Input area: wider, more prominent */
+      .battle-main > .player-side .player-input-section { flex: 1 !important; min-width: 0 !important; }
+      .battle-main > .player-side .player-input-section input {
+        font-size: 15px !important;
+        padding: 8px 12px !important;
+        border-radius: 10px !important;
+      }
+      .battle-main > .player-side .player-input-section button {
+        padding: 8px 16px !important;
+        font-size: 13px !important;
+        border-radius: 10px !important;
+        font-weight: 800 !important;
+        letter-spacing: 0.05em;
+      }
+      .battle-main > .player-side .player-input-section #battle-p1-tip,
+      .battle-main > .player-side .player-input-section #battle-p2-tip {
+        font-size: 9px !important;
+      }
+
+      /* HP section: keep visible, right side of player row */
+      .battle-main > .player-side .player-hp-section {
+        width: 60px !important;
+        margin-top: 0 !important;
+      }
+      .battle-main > .player-side .player-hp-section .hp-bar-track { height: 6px !important; }
+      .battle-main > .player-side .player-hp-section span { font-size: 10px !important; }
+
+      /* Arena: capped height, no flex-grow */
+      #arena-center {
+        flex: 0 0 auto !important;
+        height: 95px !important;
+        min-height: 95px !important;
+        border-radius: 12px !important;
+      }
+      .arena-emoji { font-size: 1.8rem !important; }
+      .arena-entity-label { font-size: 0.5rem !important; bottom: 6px !important; }
+      .damage-popup { font-size: 1.4rem !important; }
+      .damage-text { font-size: 0.55rem !important; }
+      .fight-cloud-inner { width: 65px !important; height: 65px !important; font-size: 1.3rem !important; }
+
+      /* Battle log: visible, scrollable within capped height */
+      #battle-log {
+        display: block !important;
+        flex: 0 0 auto !important;
+        max-height: 58px !important;
+        border-radius: 8px !important;
+      }
+      #battle-log .log-container {
+        max-height: 36px !important;
+        font-size: 11px !important;
+        padding: 2px 8px 4px !important;
+      }
+      #battle-log .flex.items-center { padding: 2px 8px 0 !important; }
+      #battle-log .flex.items-center span { font-size: 10px !important; }
+
+      /* Game over */
+      #gameover-icon { font-size: 4rem !important; }
+      #gameover-title { font-size: 1.6rem !important; }
+      #gameover-details { font-size: 0.8rem !important; }
+      #gameover-btn { font-size: 0.85rem !important; padding: 12px 28px !important; }
+
+      /* Private lobby */
+      #pl-room-code { font-size: 1.3rem !important; }
+      #pl-p1-avatar, #pl-p2-avatar { width: 44px !important; height: 44px !important; }
+      #screen-private-lobby .flex.gap-10 { gap: 16px !important; }
+      #pl-start-btn { font-size: 0.85rem !important; padding: 14px !important; }
+
+      /* Genre splash */
+      #genre-splash-name { font-size: 3rem !important; }
+      #genre-splash-icon { font-size: 4rem !important; }
+      #genre-splash-round { font-size: 0.7rem !important; }
+      #genre-splash-mutator { font-size: 0.6rem !important; }
+
+      /* Waiting / Matching */
+      #screen-waiting-room .letter-avatar { width: 48px !important; height: 48px !important; font-size: 1rem !important; }
+      #screen-waiting-room .text-lg { font-size: 0.9rem !important; }
+      #screen-matching .loading-spinner { width: 36px !important; height: 36px !important; }
+      #screen-matching .text-lg { font-size: 0.9rem !important; }
+
+      /* Prevent iOS zoom on all inputs */
+      input, textarea, select { font-size: 16px !important; }
+    }
+
+    /* ============================================
+       SMALL PHONE (<400px)
+       ============================================ */
+    @media (max-width: 400px) {
+      .battle-main > .player-side { padding: 2px 6px !important; gap: 3px !important; }
+      .battle-main > .player-side .player-avatar-section .letter-avatar { width: 24px !important; height: 24px !important; font-size: 0.65rem !important; }
+      .battle-main > .player-side .player-input-section input { font-size: 14px !important; padding: 6px 8px !important; }
+      .battle-main > .player-side .player-input-section button { font-size: 12px !important; padding: 6px 12px !important; }
+      .battle-main > .player-side .player-name-elo #battle-p1-name,
+      .battle-main > .player-side .player-name-elo #battle-p2-name { font-size: 0.65rem !important; }
+      .battle-main > .player-side .player-hp-section { width: 50px !important; }
+      #arena-center { height: 80px !important; min-height: 80px !important; }
+      .arena-emoji { font-size: 1.5rem !important; }
+      .fight-cloud-inner { width: 55px !important; height: 55px !important; font-size: 1.1rem !important; }
+      #battle-log { max-height: 46px !important; }
+      #battle-log .log-container { max-height: 28px !important; font-size: 10px !important; }
+      #screen-battle > div:first-child { flex-wrap: wrap; gap: 4px; }
+      nav h1 { font-size: 0.85rem !important; }
+      #nav-username { max-width: 70px; font-size: 0.7rem !important; }
+      #btn-logout { font-size: 0.65rem !important; padding: 3px 6px !important; }
       .genre-grid { grid-template-columns: 1fr !important; }
+      #pl-genre-grid { grid-template-columns: 1fr !important; }
+      #profile-card .letter-avatar { width: 36px !important; height: 36px !important; font-size: 0.9rem !important; }
+      #lobby-username { font-size: 0.85rem !important; }
+      #genre-splash-name { font-size: 2.2rem !important; }
+      #genre-splash-icon { font-size: 3rem !important; }
+      #gameover-icon { font-size: 3rem !important; }
+      #gameover-title { font-size: 1.3rem !important; }
+      #screen-auth h2 { font-size: 1.2rem !important; }
     }
   </style>
 </head>
@@ -741,9 +938,9 @@
           </div>
           <div class="player-input-section w-full flex-1 flex flex-col justify-center gap-2">
             <div id="battle-p1-input-area" class="text-center">
-              <input id="battle-p1-input" type="text" placeholder="e.g. T-Rex, Laser Cannon, Zeus..." class="w-full px-3 py-3 rounded-xl bg-[#0a0a18]/70 border border-indigo-800/30 text-white glow-border outline-none text-center text-sm placeholder:text-gray-600">
-              <button id="battle-p1-submit" onclick="submitEntity()" class="mt-2 w-full py-2.5 rounded-xl btn-primary text-sm font-bold tracking-wide">Submit</button>
-              <div id="battle-p1-tip" class="text-[10px] text-indigo-400/40 text-center mt-1.5 italic transition-opacity">Stronger & more creative = more damage. Fitting the genre is required!</div>
+              <input id="battle-p1-input" type="text" placeholder='Type your entity here... e.g. "T-Rex", "Laser Cannon", "Zeus"' class="w-full px-3 py-3 rounded-xl bg-[#0a0a18]/70 border border-indigo-800/30 text-white glow-border outline-none text-center text-sm placeholder:text-gray-600">
+              <button id="battle-p1-submit" onclick="submitEntity()" class="mt-2 w-full py-2.5 rounded-xl btn-primary text-sm font-bold tracking-wide">⚔️ Submit</button>
+              <div id="battle-p1-tip" class="text-[10px] text-indigo-400/40 text-center mt-1.5 italic transition-opacity">Think of something that fits the genre. Stronger &amp; more creative = more damage!</div>
             </div>
             <div id="battle-p1-ready" class="hidden flex-col items-center gap-1 py-2">
               <div class="flex items-center gap-2">
@@ -791,9 +988,9 @@
           </div>
           <div class="player-input-section w-full flex-1 flex flex-col justify-center gap-2">
             <div id="battle-p2-input-area" class="text-center">
-              <input id="battle-p2-input" type="text" placeholder="e.g. T-Rex, Laser Cannon, Zeus..." class="w-full px-3 py-3 rounded-xl bg-[#0a0a18]/70 border border-indigo-800/30 text-white glow-border outline-none text-center text-sm placeholder:text-gray-600" disabled>
-              <button id="battle-p2-submit" onclick="submitEntity()" class="mt-2 w-full py-2.5 rounded-xl btn-primary text-sm font-bold tracking-wide hidden">Submit</button>
-              <div id="battle-p2-tip" class="text-[10px] text-indigo-400/40 text-center mt-1.5 italic">Stronger & more creative = more damage. Fitting the genre is required!</div>
+              <input id="battle-p2-input" type="text" placeholder='Type your entity here... e.g. "T-Rex", "Laser Cannon", "Zeus"' class="w-full px-3 py-3 rounded-xl bg-[#0a0a18]/70 border border-indigo-800/30 text-white glow-border outline-none text-center text-sm placeholder:text-gray-600" disabled>
+              <button id="battle-p2-submit" onclick="submitEntity()" class="mt-2 w-full py-2.5 rounded-xl btn-primary text-sm font-bold tracking-wide hidden">⚔️ Submit</button>
+              <div id="battle-p2-tip" class="text-[10px] text-indigo-400/40 text-center mt-1.5 italic">Think of something that fits the genre. Stronger &amp; more creative = more damage!</div>
             </div>
             <div id="battle-p2-ready" class="hidden flex-col items-center gap-1 py-2">
               <div class="flex items-center gap-2">
@@ -844,7 +1041,9 @@
     let currentProfile = null;
     let playerSide = null;
     let roomCode = null;
-    let pollingInterval = null;
+    let sseConnection = null;
+    let sseReconnectTimer = null;
+    let sseRetries = 0;
     let countdownInterval = null;
     let isAnimating = false;
     let pendingGameOverState = null;
@@ -943,7 +1142,14 @@
             currentToken = guestData.token;
             localStorage.setItem('prompt_clash_token', currentToken);
             localStorage.setItem('prompt_clash_username', guestData.username);
-            currentProfile = { uid: guestData.uid, username: guestData.username, elo: 1000, gamesPlayed: 0, gamesWon: 0, avatarColor: avatarStyle(guestData.username) };
+            const profileRes = await fetch('/api/profile', {
+              headers: { Authorization: `Bearer ${currentToken}` }
+            });
+            if (profileRes.ok) {
+              currentProfile = await profileRes.json();
+            } else {
+              currentProfile = { uid: guestData.uid, username: guestData.username, elo: 1000, gamesPlayed: 0, gamesWon: 0, avatarColor: avatarStyle(guestData.username) };
+            }
             document.getElementById('nav-username').textContent = currentProfile.username;
             document.getElementById('nav-username').classList.remove('hidden');
             document.getElementById('btn-logout').classList.remove('hidden');
@@ -1413,43 +1619,60 @@
     }
 
     // ============================================================
-    // POLLING
+    // SSE — real-time game state (replaces polling)
     // ============================================================
     function startPolling() {
       stopPolling();
-      pollingInterval = setInterval(pollGameState, 2000);
-      pollGameState();
+      if (!roomCode || !currentToken) return;
+      sseRetries = 0;
+      const url = `/api/sse/${roomCode}?token=${encodeURIComponent(currentToken)}`;
+      sseConnection = new EventSource(url);
+      sseConnection.onmessage = (event) => {
+        if (event.data === 'heartbeat') return;
+        sseRetries = 0;
+        try {
+          const state = JSON.parse(event.data);
+          handleState(state);
+        } catch (e) { console.error('sse parse error', e); }
+      };
+      sseConnection.onerror = () => {
+        if (sseConnection) { sseConnection.close(); sseConnection = null; }
+        sseRetries++;
+        if (sseRetries > 10) { stopAllPolling(); showScreen('screen-lobby'); return; }
+        if (!sseReconnectTimer) {
+          sseReconnectTimer = setTimeout(() => {
+            sseReconnectTimer = null;
+            if (roomCode && currentToken) startPolling();
+          }, Math.min(3000 * Math.pow(1.2, sseRetries), 15000));
+        }
+      };
     }
 
     function stopPolling() {
-      if (pollingInterval) { clearInterval(pollingInterval); pollingInterval = null; }
+      if (sseReconnectTimer) { clearTimeout(sseReconnectTimer); sseReconnectTimer = null; }
+      if (sseConnection) { sseConnection.close(); sseConnection = null; }
+      sseRetries = 0;
       if (countdownInterval) { clearInterval(countdownInterval); countdownInterval = null; }
     }
 
     function stopAllPolling() {
-      if (pollingInterval) { clearInterval(pollingInterval); pollingInterval = null; }
-      if (countdownInterval) { clearInterval(countdownInterval); countdownInterval = null; }
+      stopPolling();
     }
 
     // ============================================================
-    // GAME STATE HANDLER
+    // GAME STATE HANDLER — kept for backward compat (explicit fetch)
     // ============================================================
     async function pollGameState() {
       if (!roomCode || !currentToken) return;
-      const token = await getToken();
-      if (!token) return;
       try {
         const res = await fetch(`/api/game-state/${roomCode}`, {
-          headers: { Authorization: `Bearer ${token}` }
+          headers: { Authorization: `Bearer ${currentToken}` }
         });
-        if (!res.ok) {
-          stopAllPolling();
-          showScreen('screen-lobby');
-          return;
+        if (res.ok) {
+          const state = await res.json();
+          handleState(state);
         }
-        const state = await res.json();
-        handleState(state);
-      } catch (e) { console.error('poll error', e); }
+      } catch {}
     }
 
     function handleState(state) {
