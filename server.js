@@ -82,8 +82,8 @@ const battleCache = new Map();
 // AI Request Queue — paces calls to stay within Groq free tier limits (~30 RPM per key)
 const aiQueue = [];
 let aiQueueProcessing = false;
-const AI_BATCH_SIZE = Math.min(aiClients.length * 2, 6);
-const AI_BATCH_DELAY_MS = Math.max(1000, Math.round(2000 / Math.max(aiClients.length, 1)));
+const AI_BATCH_SIZE = Math.max(1, aiClients.length);
+const AI_BATCH_DELAY_MS = 2000;
 
 function enqueueAiCall(fn) {
   return new Promise((resolve, reject) => {
