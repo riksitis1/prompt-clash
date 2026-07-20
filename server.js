@@ -56,16 +56,35 @@ function flushUsers() {
 // ============================================================
 // AI Init (Groq — free, OpenAI-compatible API)
 // ============================================================
-const GROQ_KEY = process.env.GROQ_API_KEY || null;
 const AI_MODEL = 'llama-3.3-70b-versatile';
-if (GROQ_KEY) console.log(`Groq API key found, enabling AI judge (${AI_MODEL})`);
+
+// Collect all Groq API keys (GROQ_API_KEY, GROQ_API_KEY_2, ...)
+const groqKeys = [];
+const primaryKey = process.env.GROQ_API_KEY;
+if (primaryKey) groqKeys.push(primaryKey);
+for (let i = 2; i <= 5; i++) {
+  const extra = process.env[`GROQ_API_KEY_${i}`];
+  if (extra) groqKeys.push(extra);
+}
+
+const aiClients = groqKeys.map(key => new OpenAI({ apiKey: key, baseURL: 'https://api.groq.com/openai/v1' }));
+let aiClientIndex = 0;
+function nextAiClient() {
+  const client = aiClients[aiClientIndex % aiClients.length];
+  aiClientIndex++;
+  return client;
+}
+
+if (aiClients.length > 0) console.log(`Groq enabled with ${aiClients.length} key(s), model: ${AI_MODEL}`);
 else console.log('No Groq API key — battles will use fallback results');
-const openai = GROQ_KEY ? new OpenAI({ apiKey: GROQ_KEY, baseURL: 'https://api.groq.com/openai/v1' }) : null;
 const battleCache = new Map();
 
-// AI Request Queue — paces calls to avoid hitting Groq free tier limits (30 RPM)
+// AI Request Queue — paces calls to stay within Groq free tier limits (~30 RPM per key)
 const aiQueue = [];
 let aiQueueProcessing = false;
+const AI_BATCH_SIZE = Math.min(aiClients.length * 2, 6);
+const AI_BATCH_DELAY_MS = Math.max(1000, Math.round(2000 / Math.max(aiClients.length, 1)));
+
 function enqueueAiCall(fn) {
   return new Promise((resolve, reject) => {
     aiQueue.push({ fn, resolve, reject });
@@ -76,14 +95,13 @@ async function processAiQueue() {
   if (aiQueueProcessing) return;
   aiQueueProcessing = true;
   while (aiQueue.length > 0) {
-    const batch = aiQueue.splice(0, Math.min(aiQueue.length, 3));
+    const batch = aiQueue.splice(0, Math.min(aiQueue.length, AI_BATCH_SIZE));
     await Promise.allSettled(batch.map(item =>
       (async () => {
         try { item.resolve(await item.fn()); } catch (e) { item.reject(e); }
       })()
     ));
-    // Pause ~2s between batches to stay within 30 RPM
-    if (aiQueue.length > 0) await new Promise(r => setTimeout(r, 2000));
+    if (aiQueue.length > 0) await new Promise(r => setTimeout(r, AI_BATCH_DELAY_MS));
   }
   aiQueueProcessing = false;
 }
@@ -644,11 +662,12 @@ CRITICAL RULES (follow strictly in this order):
 - Be creative, thematic, fair, and decisive. Use hard logic. No ties unless truly equal. Write the description in the unique voice of ${personalityName}.`;
 
   let data;
-  if (openai) {
+  if (aiClients.length > 0) {
     data = await enqueueAiCall(async () => {
       for (let attempt = 0; attempt < 3; attempt++) {
+        const client = nextAiClient();
         try {
-          const completion = await openai.chat.completions.create({
+          const completion = await client.chat.completions.create({
             model: AI_MODEL,
             messages: [
               { role: 'system', content: `You are ${personalityName}, a strict AI battle judge. ${personalityStyle} The active mutator is: ${mutatorName} — ${mutatorStyle}. Your most important rule is GENRE CHECK — disqualify any entity that does not belong to the specified genre. Always respond in valid JSON only. Keep descriptions vivid (8-25 words, 1 sentence) and match your assigned personality. No stories, no markdown.` },
@@ -1176,7 +1195,7 @@ app.post('/api/resign', async (req, res) => {
 });
 
 // --- Health Check ---
-app.get('/api/health', (req, res) => res.json({ status: 'ok', ai: !!openai }));
+app.get('/api/health', (req, res) => res.json({ status: 'ok', ai: aiClients.length > 0 }));
 
 // ============================================================
 // SSE endpoint — real-time game state push
@@ -1252,6 +1271,6 @@ process.on('SIGUSR2', () => { flushUsers(); process.exit(0); });
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Prompt Clash server running on port ${PORT}`);
-  console.log(`  AI judge: ${openai ? `enabled (${AI_MODEL} via Groq)` : 'NOT configured (set GROQ_API_KEY)'}`);
+  console.log(`  AI judge: ${aiClients.length > 0 ? `enabled (${AI_MODEL} via Groq, ${aiClients.length} key(s))` : 'NOT configured (set GROQ_API_KEY)'}`);
   console.log(`  Users stored at: ${USERS_FILE}`);
 });
